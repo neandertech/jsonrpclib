@@ -16,26 +16,25 @@ import jsonrpclib.internals.OutputMessage.ErrorMessage
 import jsonrpclib.internals.OutputMessage.ResponseMessage
 import scala.util.Try
 
-private[jsonrpclib] trait MessageDispatcher[F[_]] {
+private[jsonrpclib] abstract class MessageDispatcher[F[_]](implicit F: Monadic[F]) extends Channel.MonadicChannel[F] {
+
+  import F._
 
   protected def reportError(params: Option[Payload], error: ProtocolError, method: String): F[Unit]
-
-  protected def doFlatMap[A, B](fa: F[A])(f: A => F[B]): F[B]
-  protected def doPure[A](a: A): F[A]
   protected def getEndpoint(method: String): F[Option[Endpoint[F]]]
   protected def sendMessage(message: Message): F[Unit]
   protected def nextCallId(): F[CallId]
   protected def createPromise[A](): F[(Try[A] => F[Unit], () => F[A])]
   protected def storePendingCall(callId: CallId, handle: OutputMessage => F[Unit]): F[Unit]
-  protected def getPendingCall(callId: CallId): F[Option[OutputMessage => F[Unit]]]
+  protected def removePendingCall(callId: CallId): F[Option[OutputMessage => F[Unit]]]
 
-  protected def notificationStub[In](method: String)(implicit inCodec: Codec[In]): In => F[Unit] = { (input: In) =>
+  def notificationStub[In](method: String)(implicit inCodec: Codec[In]): In => F[Unit] = { (input: In) =>
     val encoded = inCodec.encodeBytes(input)
     val message = InputMessage.NotificationMessage(method, Some(encoded))
     sendMessage(message)
   }
 
-  protected def requestResponseStub[In, Err, Out](
+  def requestResponseStub[In, Err, Out](
       method: String
   )(implicit inCodec: Codec[In], errCodec: ErrorCodec[Err], outCodec: Codec[Out]): In => F[Either[Err, Out]] = {
     (input: In) =>
@@ -49,7 +48,7 @@ private[jsonrpclib] trait MessageDispatcher[F[_]] {
       }
   }
 
-  protected def handleReceivedPayload(payload: Payload): F[Unit] = {
+  protected[jsonrpclib] def handleReceivedPayload(payload: Payload): F[Unit] = {
     Codec.decode[Message](Some(payload)).map {
       case im: InputMessage =>
         doFlatMap(getEndpoint(im.method)) {
@@ -92,7 +91,7 @@ private[jsonrpclib] trait MessageDispatcher[F[_]] {
                 val responseData = ep.outCodec.encodeBytes(data)
                 sendMessage(OutputMessage.ResponseMessage(callId, responseData))
               case Left(error) =>
-                val errorPayload = ep.errCodec.encodeBytes(error)
+                val errorPayload = ep.errCodec.encode(error)
                 sendMessage(OutputMessage.ErrorMessage(callId, errorPayload))
             }
           case Left(pError) =>
@@ -114,7 +113,7 @@ private[jsonrpclib] trait MessageDispatcher[F[_]] {
       errCodec: ErrorCodec[Err],
       outCodec: Codec[Out],
       fulfill: Try[Either[Err, Out]] => F[Unit]
-  ): OutputMessage => F[Unit] = { message: OutputMessage =>
+  ): OutputMessage => F[Unit] = { (message: OutputMessage) =>
     message match {
       case ErrorMessage(_, errorPayload) =>
         errCodec.decode(errorPayload) match {

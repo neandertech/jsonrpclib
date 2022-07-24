@@ -22,13 +22,12 @@ object versions {
 }
 import versions._
 
-object lib extends Cross[LibModule](versions.crossMap.keys.toSeq: _*)
-class LibModule(versionKey: String) extends define.Module {
+object core extends Cross[CoreModule](versions.crossMap.keys.toSeq: _*)
+class CoreModule(versionKey: String) extends define.Module {
 
   val crossVersion = crossMap(versionKey)
   def crossPlatformIvyDeps: T[Agg[Dep]] = Agg(
-    ivy"com.github.plokhotnyuk.jsoniter-scala::jsoniter-scala-macros::2.13.31",
-    ivy"io.circe::circe-core::0.14.2"
+    ivy"com.github.plokhotnyuk.jsoniter-scala::jsoniter-scala-macros::2.13.31"
   )
 
   object jvm extends RpcCrossScalaModule {
@@ -63,11 +62,11 @@ class FS2Module(versionKey: String) extends define.Module {
   val crossVersion = crossMap(versionKey)
   def crossPlatformIvyDeps: T[Agg[Dep]] = Agg(
     ivy"com.github.plokhotnyuk.jsoniter-scala::jsoniter-scala-macros::2.13.31",
-    ivy"io.circe::circe-core::0.14.2"
+    ivy"co.fs2::fs2-core:3.2.8"
   )
 
   object jvm extends RpcCrossScalaModule {
-    def moduleDeps = Seq(lib(versionKey).jvm)
+    def moduleDeps = Seq(core(versionKey).jvm)
     def crossScalaVersion = crossVersion
     def targetPlatform: Platform = Platform.JVM
     def ivyDeps = T(super.ivyDeps() ++ crossPlatformIvyDeps())
@@ -75,7 +74,7 @@ class FS2Module(versionKey: String) extends define.Module {
   }
 
   object js extends ScalaJSModule with RpcCrossScalaModule {
-    def moduleDeps = Seq(lib(versionKey).js)
+    def moduleDeps = Seq(core(versionKey).js)
     def crossScalaVersion = crossVersion
     def targetPlatform: Platform = Platform.JS
     def scalaJSVersion = versions.scalaJSVersion
