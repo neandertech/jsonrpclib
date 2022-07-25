@@ -10,8 +10,8 @@ import scala.concurrent.Promise
 import java.util.concurrent.atomic.AtomicLong
 import jsonrpclib.Endpoint.NotificationEndpoint
 import jsonrpclib.Endpoint.RequestResponseEndpoint
-import jsonrpclib.EndpointTemplate.NotificationTemplate
-import jsonrpclib.EndpointTemplate.RequestResponseTemplate
+import jsonrpclib.StubTemplate.NotificationTemplate
+import jsonrpclib.StubTemplate.RequestResponseTemplate
 import jsonrpclib.internals.OutputMessage.ErrorMessage
 import jsonrpclib.internals.OutputMessage.ResponseMessage
 import scala.util.Try
@@ -20,6 +20,7 @@ private[jsonrpclib] abstract class MessageDispatcher[F[_]](implicit F: Monadic[F
 
   import F._
 
+  protected def background[A](fa: F[A]): F[Unit]
   protected def reportError(params: Option[Payload], error: ProtocolError, method: String): F[Unit]
   protected def getEndpoint(method: String): F[Option[Endpoint[F]]]
   protected def sendMessage(message: Message): F[Unit]
@@ -34,7 +35,7 @@ private[jsonrpclib] abstract class MessageDispatcher[F[_]](implicit F: Monadic[F
     sendMessage(message)
   }
 
-  def requestResponseStub[In, Err, Out](
+  def stub[In, Err, Out](
       method: String
   )(implicit inCodec: Codec[In], errCodec: ErrorCodec[Err], outCodec: Codec[Out]): In => F[Either[Err, Out]] = {
     (input: In) =>
@@ -43,7 +44,7 @@ private[jsonrpclib] abstract class MessageDispatcher[F[_]](implicit F: Monadic[F
         val message = InputMessage.RequestMessage(method, callId, Some(encoded))
         doFlatMap(createPromise[Either[Err, Out]]()) { case (fulfill, future) =>
           val pc = createPendingCall(method, errCodec, outCodec, fulfill)
-          doFlatMap(storePendingCall(callId, pc))(_ => future())
+          doFlatMap(storePendingCall(callId, pc))(_ => doFlatMap(sendMessage(message))(_ => future()))
         }
       }
   }
@@ -52,7 +53,7 @@ private[jsonrpclib] abstract class MessageDispatcher[F[_]](implicit F: Monadic[F
     Codec.decode[Message](Some(payload)).map {
       case im: InputMessage =>
         doFlatMap(getEndpoint(im.method)) {
-          case Some(ep) => executeInputMessage(im, ep)
+          case Some(ep) => background(executeInputMessage(im, ep))
           case None =>
             im.maybeCallId match {
               case None =>
@@ -63,7 +64,11 @@ private[jsonrpclib] abstract class MessageDispatcher[F[_]](implicit F: Monadic[F
                 sendProtocolError(callId, error)
             }
         }
-      case im: OutputMessage => doPure(())
+      case om: OutputMessage =>
+        doFlatMap(removePendingCall(om.callId)) {
+          case Some(pendingCall) => pendingCall(om)
+          case None              => doPure(()) // TODO do something
+        }
     } match {
       case Left(error) =>
         sendProtocolError(error)
@@ -117,8 +122,8 @@ private[jsonrpclib] abstract class MessageDispatcher[F[_]](implicit F: Monadic[F
     message match {
       case ErrorMessage(_, errorPayload) =>
         errCodec.decode(errorPayload) match {
-          case Left(decodeError) => fulfill(scala.util.Failure(decodeError))
-          case Right(value)      => fulfill(scala.util.Success(Left(value)))
+          case Left(_)      => fulfill(scala.util.Failure(errorPayload))
+          case Right(value) => fulfill(scala.util.Success(Left(value)))
         }
       case ResponseMessage(_, data) =>
         outCodec.decode(Some(data)) match {

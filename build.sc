@@ -70,7 +70,7 @@ class FS2Module(versionKey: String) extends define.Module {
     def crossScalaVersion = crossVersion
     def targetPlatform: Platform = Platform.JVM
     def ivyDeps = T(super.ivyDeps() ++ crossPlatformIvyDeps())
-    object test extends Tests
+    object test extends WeaverTests
   }
 
   object js extends ScalaJSModule with RpcCrossScalaModule {
@@ -79,7 +79,7 @@ class FS2Module(versionKey: String) extends define.Module {
     def targetPlatform: Platform = Platform.JS
     def scalaJSVersion = versions.scalaJSVersion
     def ivyDeps = T(super.ivyDeps() ++ crossPlatformIvyDeps())
-    object test extends Tests
+    object test extends WeaverTests
   }
 }
 
@@ -98,6 +98,11 @@ trait RpcCrossScalaModule extends CrossPlatformScalaModule {
 
   trait Tests extends super.Tests with TestModule.Munit {
     def ivyDeps = Agg(ivy"org.scalameta::munit:$munitVersion")
+  }
+
+  trait WeaverTests extends Tests {
+    def ivyDeps = Agg(ivy"com.disneystreaming::weaver-cats:0.7.13")
+    def testFramework = "weaver.framework.CatsEffect"
   }
 }
 

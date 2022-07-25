@@ -11,6 +11,8 @@ package object fs2interop {
     def doPure[A](a: A): F[A] = Monad[F].pure(a)
 
     def doAttempt[A](fa: F[A]): F[Either[Throwable, A]] = MonadThrow[F].attempt(fa)
+
+    def doRaiseError[A](e: Throwable): F[A] = MonadThrow[F].raiseError(e)
   }
 
 }
