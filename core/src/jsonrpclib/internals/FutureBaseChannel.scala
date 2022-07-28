@@ -3,8 +3,6 @@ package jsonrpclib
 import scala.concurrent.ExecutionContext
 import scala.concurrent.Future
 import jsonrpclib.internals._
-import jsonrpclib.Payload.BytesPayload
-import jsonrpclib.Payload.StringPayload
 import scala.concurrent.Promise
 import java.util.concurrent.atomic.AtomicLong
 import jsonrpclib.Endpoint.NotificationEndpoint
@@ -28,8 +26,7 @@ abstract class FutureBasedChannel(endpoints: List[Endpoint[Future]])(implicit ec
   protected def getEndpoint(method: String): Future[Option[Endpoint[Future]]] =
     Future.successful(endpointsMap.get(method))
   protected def sendMessage(message: Message): Future[Unit] = {
-    sendPayload(Codec.encodeBytes(message))
-    Future.successful(())
+    sendPayload(Codec.encode(message)).map(_ => ())
   }
   protected def nextCallId(): Future[CallId] = Future.successful(CallId.NumberId(nextID.incrementAndGet()))
 

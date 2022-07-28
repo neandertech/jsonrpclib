@@ -34,8 +34,8 @@ object FS2ChannelSpec extends SimpleIOSuite {
     for {
       stdout <- Queue.bounded[IO, Payload](10).toResource
       stdin <- Queue.bounded[IO, Payload](10).toResource
-      serverSideChannel <- FS2Channel[IO](fs2.Stream.fromQueueUnterminated(stdin), payload => stdout.offer(payload))
-      clientSideChannel <- FS2Channel[IO](fs2.Stream.fromQueueUnterminated(stdout), payload => stdin.offer(payload))
+      serverSideChannel <- FS2Channel[IO](fs2.Stream.fromQueueUnterminated(stdin), stdout.offer)
+      clientSideChannel <- FS2Channel[IO](fs2.Stream.fromQueueUnterminated(stdout), stdin.offer)
       _ <- serverSideChannel.withEndpoint(endpoint)
       remoteFunction = clientSideChannel.simpleStub[IntWrapper, IntWrapper]("inc")
       result <- remoteFunction(IntWrapper(1)).toResource
@@ -49,8 +49,8 @@ object FS2ChannelSpec extends SimpleIOSuite {
     for {
       stdout <- Queue.bounded[IO, Payload](10).toResource
       stdin <- Queue.bounded[IO, Payload](10).toResource
-      serverSideChannel <- FS2Channel[IO](fs2.Stream.fromQueueUnterminated(stdin), payload => stdout.offer(payload))
-      clientSideChannel <- FS2Channel[IO](fs2.Stream.fromQueueUnterminated(stdout), payload => stdin.offer(payload))
+      serverSideChannel <- FS2Channel[IO](fs2.Stream.fromQueueUnterminated(stdin), stdout.offer)
+      clientSideChannel <- FS2Channel[IO](fs2.Stream.fromQueueUnterminated(stdout), stdin.offer)
       remoteFunction = clientSideChannel.simpleStub[IntWrapper, IntWrapper]("inc")
       result <- remoteFunction(IntWrapper(1)).attempt.toResource
     } yield {

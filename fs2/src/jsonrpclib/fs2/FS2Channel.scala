@@ -3,7 +3,8 @@ package fs2interop
 
 import jsonrpclib.internals.MessageDispatcher
 
-import fs2._
+import _root_.fs2.Stream
+import _root_.fs2.Pipe
 import jsonrpclib.internals._
 import scala.util.Try
 import cats.Monad
@@ -15,12 +16,10 @@ import scala.util.Success
 import cats.Applicative
 import cats.data.Kleisli
 import cats.MonadThrow
-import jsonrpclib.StubTemplate.NotificationTemplate
-import jsonrpclib.StubTemplate.RequestResponseTemplate
+import jsonrpclib.StubTemplate._
 import cats.Defer
-import jsonrpclib.internals.OutputMessage.ErrorMessage
-import jsonrpclib.internals.OutputMessage.ResponseMessage
 import cats.Functor
+import jsonrpclib.internals.OutputMessage._
 import cats.effect.std.syntax.supervisor
 import cats.effect.std.Supervisor
 
@@ -34,15 +33,26 @@ trait FS2Channel[F[_]] extends Channel[F] {
 
 object FS2Channel {
 
+  def lspCompliant[F[_]: Concurrent](
+      byteStream: Stream[F, Byte],
+      byteSink: Pipe[F, Byte, Nothing],
+      startingEndpoints: List[Endpoint[F]] = List.empty,
+      bufferSize: Int = 512
+  ): Resource[F, FS2Channel[F]] = internals.LSP.writeSink(byteSink, bufferSize).flatMap { sink =>
+    apply[F](internals.LSP.readStream(byteStream), sink, startingEndpoints)
+  }
+
   def apply[F[_]: Concurrent](
-      inputStream: fs2.Stream[F, Payload],
-      outputPipe: Payload => F[Unit]
+      payloadStream: Stream[F, Payload],
+      payloadSink: Payload => F[Unit],
+      startingEndpoints: List[Endpoint[F]] = List.empty
   ): Resource[F, FS2Channel[F]] = {
+    val endpointsMap = startingEndpoints.map(ep => ep.method -> ep).toMap
     for {
       supervisor <- Supervisor[F]
-      ref <- Ref[F].of(State[F](Map.empty, Map.empty, 0)).toResource
-      impl = new Impl(outputPipe, ref, supervisor)
-      _ <- inputStream.evalMap(impl.handleReceivedPayload).compile.drain.background
+      ref <- Ref[F].of(State[F](Map.empty, endpointsMap, 0)).toResource
+      impl = new Impl(payloadSink, ref, supervisor)
+      _ <- payloadStream.evalMap(impl.handleReceivedPayload).compile.drain.background
     } yield impl
   }
 
@@ -86,7 +96,7 @@ object FS2Channel {
     protected def background[A](fa: F[A]): F[Unit] = supervisor.supervise(fa).void
     protected def reportError(params: Option[Payload], error: ProtocolError, method: String): F[Unit] = ???
     protected def getEndpoint(method: String): F[Option[Endpoint[F]]] = state.get.map(_.endpoints.get(method))
-    protected def sendMessage(message: Message): F[Unit] = sink(Codec.encodeBytes(message))
+    protected def sendMessage(message: Message): F[Unit] = sink(Codec.encode(message))
     protected def nextCallId(): F[CallId] = state.modify(_.nextCallId)
     protected def createPromise[A](): F[(Try[A] => F[Unit], () => F[A])] = Deferred[F, Try[A]].map { promise =>
       def compile(trya: Try[A]): F[Unit] = promise.complete(trya).void

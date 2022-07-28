@@ -4,8 +4,6 @@ package internals
 import scala.concurrent.ExecutionContext
 import scala.concurrent.Future
 import jsonrpclib.internals._
-import jsonrpclib.Payload.BytesPayload
-import jsonrpclib.Payload.StringPayload
 import scala.concurrent.Promise
 import java.util.concurrent.atomic.AtomicLong
 import jsonrpclib.Endpoint.NotificationEndpoint
@@ -30,7 +28,7 @@ private[jsonrpclib] abstract class MessageDispatcher[F[_]](implicit F: Monadic[F
   protected def removePendingCall(callId: CallId): F[Option[OutputMessage => F[Unit]]]
 
   def notificationStub[In](method: String)(implicit inCodec: Codec[In]): In => F[Unit] = { (input: In) =>
-    val encoded = inCodec.encodeBytes(input)
+    val encoded = inCodec.encode(input)
     val message = InputMessage.NotificationMessage(method, Some(encoded))
     sendMessage(message)
   }
@@ -39,7 +37,7 @@ private[jsonrpclib] abstract class MessageDispatcher[F[_]](implicit F: Monadic[F
       method: String
   )(implicit inCodec: Codec[In], errCodec: ErrorCodec[Err], outCodec: Codec[Out]): In => F[Either[Err, Out]] = {
     (input: In) =>
-      val encoded = inCodec.encodeBytes(input)
+      val encoded = inCodec.encode(input)
       doFlatMap(nextCallId()) { callId =>
         val message = InputMessage.RequestMessage(method, callId, Some(encoded))
         doFlatMap(createPromise[Either[Err, Out]]()) { case (fulfill, future) =>
@@ -93,7 +91,7 @@ private[jsonrpclib] abstract class MessageDispatcher[F[_]](implicit F: Monadic[F
           case Right(value) =>
             doFlatMap(ep.run(value)) {
               case Right(data) =>
-                val responseData = ep.outCodec.encodeBytes(data)
+                val responseData = ep.outCodec.encode(data)
                 sendMessage(OutputMessage.ResponseMessage(callId, responseData))
               case Left(error) =>
                 val errorPayload = ep.errCodec.encode(error)
