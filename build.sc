@@ -5,6 +5,7 @@ import mill._
 import scalalib._
 import scalajslib._
 import scalanativelib._
+import mill.scalajslib.api._
 
 object versions {
   val scala212Version = "2.12.16"
@@ -62,7 +63,8 @@ class FS2Module(versionKey: String) extends define.Module {
   val crossVersion = crossMap(versionKey)
   def crossPlatformIvyDeps: T[Agg[Dep]] = Agg(
     ivy"com.github.plokhotnyuk.jsoniter-scala::jsoniter-scala-macros::2.13.31",
-    ivy"co.fs2::fs2-core:3.2.8"
+    ivy"co.fs2::fs2-core::3.2.8",
+    ivy"co.fs2::fs2-io::3.2.8"
   )
 
   object jvm extends RpcCrossScalaModule {
@@ -78,6 +80,7 @@ class FS2Module(versionKey: String) extends define.Module {
     def crossScalaVersion = crossVersion
     def targetPlatform: Platform = Platform.JS
     def scalaJSVersion = versions.scalaJSVersion
+    def moduleKind = T { ModuleKind.CommonJSModule }
     def ivyDeps = T(super.ivyDeps() ++ crossPlatformIvyDeps())
     object test extends WeaverTests
   }
@@ -106,8 +109,7 @@ trait RpcCrossScalaModule extends CrossPlatformScalaModule {
   }
 }
 
-trait CrossPlatformScalaModule extends ScalaModule with CrossModuleBase {
-  outer =>
+trait CrossPlatformScalaModule extends CrossModuleBase { outer: ScalaModule =>
 
   def targetPlatform: Platform
 

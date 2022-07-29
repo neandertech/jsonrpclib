@@ -45,7 +45,7 @@ object FS2Channel {
   def apply[F[_]: Concurrent](
       payloadStream: Stream[F, Payload],
       payloadSink: Payload => F[Unit],
-      startingEndpoints: List[Endpoint[F]] = List.empty
+      startingEndpoints: List[Endpoint[F]] = List.empty[Endpoint[F]]
   ): Resource[F, FS2Channel[F]] = {
     val endpointsMap = startingEndpoints.map(ep => ep.method -> ep).toMap
     for {
