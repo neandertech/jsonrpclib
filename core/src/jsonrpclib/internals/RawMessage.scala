@@ -7,7 +7,7 @@ import java.io.OutputStream
 import java.io.InputStream
 
 private[jsonrpclib] case class RawMessage(
-    jsonRPC: String,
+    jsonrpc: String,
     method: Option[String] = None,
     result: Option[Payload] = None,
     error: Option[ErrorPayload] = None,

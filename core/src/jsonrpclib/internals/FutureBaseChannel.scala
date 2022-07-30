@@ -1,12 +1,13 @@
 package jsonrpclib
 
-import scala.concurrent.ExecutionContext
-import scala.concurrent.Future
-import jsonrpclib.internals._
-import scala.concurrent.Promise
-import java.util.concurrent.atomic.AtomicLong
 import jsonrpclib.Endpoint.NotificationEndpoint
 import jsonrpclib.Endpoint.RequestResponseEndpoint
+import jsonrpclib.internals._
+
+import java.util.concurrent.atomic.AtomicLong
+import scala.concurrent.ExecutionContext
+import scala.concurrent.Future
+import scala.concurrent.Promise
 import scala.util.Try
 
 abstract class FutureBasedChannel(endpoints: List[Endpoint[Future]])(implicit ec: ExecutionContext)

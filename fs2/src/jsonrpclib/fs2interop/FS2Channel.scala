@@ -1,27 +1,27 @@
 package jsonrpclib
 package fs2interop
 
-import jsonrpclib.internals.MessageDispatcher
-
-import _root_.fs2.Stream
 import _root_.fs2.Pipe
-import jsonrpclib.internals._
-import scala.util.Try
-import cats.Monad
-import cats.syntax.all._
-import cats.effect.implicits._
-import cats.effect.kernel._
-import scala.util.Failure
-import scala.util.Success
+import _root_.fs2.Stream
 import cats.Applicative
-import cats.data.Kleisli
-import cats.MonadThrow
-import jsonrpclib.StubTemplate._
 import cats.Defer
 import cats.Functor
-import jsonrpclib.internals.OutputMessage._
-import cats.effect.std.syntax.supervisor
+import cats.Monad
+import cats.MonadThrow
+import cats.data.Kleisli
+import cats.effect.implicits._
+import cats.effect.kernel._
 import cats.effect.std.Supervisor
+import cats.effect.std.syntax.supervisor
+import cats.syntax.all._
+import jsonrpclib.StubTemplate._
+import jsonrpclib.internals.MessageDispatcher
+import jsonrpclib.internals.OutputMessage._
+import jsonrpclib.internals._
+
+import scala.util.Failure
+import scala.util.Success
+import scala.util.Try
 
 trait FS2Channel[F[_]] extends Channel[F] {
   def withEndpoint(endpoint: Endpoint[F])(implicit F: Functor[F]): Resource[F, Unit] =
@@ -38,7 +38,7 @@ object FS2Channel {
       byteSink: Pipe[F, Byte, Nothing],
       startingEndpoints: List[Endpoint[F]] = List.empty,
       bufferSize: Int = 512
-  ): Resource[F, FS2Channel[F]] = internals.LSP.writeSink(byteSink, bufferSize).flatMap { sink =>
+  ): Stream[F, FS2Channel[F]] = internals.LSP.writeSink(byteSink, bufferSize).flatMap { sink =>
     apply[F](internals.LSP.readStream(byteStream), sink, startingEndpoints)
   }
 
@@ -46,13 +46,13 @@ object FS2Channel {
       payloadStream: Stream[F, Payload],
       payloadSink: Payload => F[Unit],
       startingEndpoints: List[Endpoint[F]] = List.empty[Endpoint[F]]
-  ): Resource[F, FS2Channel[F]] = {
+  ): Stream[F, FS2Channel[F]] = {
     val endpointsMap = startingEndpoints.map(ep => ep.method -> ep).toMap
     for {
-      supervisor <- Supervisor[F]
-      ref <- Ref[F].of(State[F](Map.empty, endpointsMap, 0)).toResource
+      supervisor <- Stream.resource(Supervisor[F])
+      ref <- Ref[F].of(State[F](Map.empty, endpointsMap, 0)).toStream
       impl = new Impl(payloadSink, ref, supervisor)
-      _ <- payloadStream.evalMap(impl.handleReceivedPayload).compile.drain.background
+      _ <- Stream(()).concurrently(payloadStream.evalMap(impl.handleReceivedPayload))
     } yield impl
   }
 

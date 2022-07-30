@@ -1,8 +1,8 @@
 package jsonrpclib
 package internals
 
-import com.github.plokhotnyuk.jsoniter_scala.core.JsonValueCodec
 import com.github.plokhotnyuk.jsoniter_scala.core.JsonReader
+import com.github.plokhotnyuk.jsoniter_scala.core.JsonValueCodec
 import com.github.plokhotnyuk.jsoniter_scala.core.JsonWriter
 
 sealed trait Message { def maybeCallId: Option[CallId] }

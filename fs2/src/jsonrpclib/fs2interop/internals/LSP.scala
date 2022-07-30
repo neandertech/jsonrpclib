@@ -1,26 +1,27 @@
 package jsonrpclib.fs2interop.internals
 
-import fs2.Chunk
-import fs2.Stream
-import java.nio.charset.Charset
-import java.nio.charset.StandardCharsets
-import jsonrpclib.Payload
 import cats.MonadThrow
-import cats.effect.std.Queue
 import cats.effect.Concurrent
-import cats.implicits._
 import cats.effect.implicits._
 import cats.effect.kernel.Resource
+import cats.effect.std.Queue
+import cats.implicits._
+import fs2.Chunk
+import fs2.Stream
+import jsonrpclib.Payload
+
+import java.nio.charset.Charset
+import java.nio.charset.StandardCharsets
 
 object LSP {
 
   def writeSink[F[_]: Concurrent](
       writePipe: fs2.Pipe[F, Byte, Nothing],
       bufferSize: Int
-  ): Resource[F, Payload => F[Unit]] =
-    Queue.bounded[F, Payload](bufferSize).toResource.flatMap { queue =>
+  ): Stream[F, Payload => F[Unit]] =
+    Stream.eval(Queue.bounded[F, Payload](bufferSize)).flatMap { queue =>
       val payloads = fs2.Stream.fromQueueUnterminated(queue, bufferSize)
-      payloads.map(writeChunk).flatMap(Stream.chunk(_)).compile.drain.background.void.as(queue.offer(_))
+      Stream(queue.offer(_)).concurrently(payloads.map(writeChunk).flatMap(Stream.chunk(_)))
     }
 
   /** Split a stream of bytes into payloads by extracting each frame based on information contained in the headers.

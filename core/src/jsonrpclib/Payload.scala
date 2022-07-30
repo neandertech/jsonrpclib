@@ -1,9 +1,10 @@
 package jsonrpclib
 
-import java.util.Base64
-import com.github.plokhotnyuk.jsoniter_scala.core.JsonValueCodec
 import com.github.plokhotnyuk.jsoniter_scala.core.JsonReader
+import com.github.plokhotnyuk.jsoniter_scala.core.JsonValueCodec
 import com.github.plokhotnyuk.jsoniter_scala.core.JsonWriter
+
+import java.util.Base64
 
 final case class Payload(array: Array[Byte]) {
   override def equals(other: Any) = other match {
