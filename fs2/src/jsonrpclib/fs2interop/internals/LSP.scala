@@ -21,7 +21,7 @@ object LSP {
   ): Stream[F, Payload => F[Unit]] =
     Stream.eval(Queue.bounded[F, Payload](bufferSize)).flatMap { queue =>
       val payloads = fs2.Stream.fromQueueUnterminated(queue, bufferSize)
-      Stream(queue.offer(_)).concurrently(payloads.map(writeChunk).flatMap(Stream.chunk(_)))
+      Stream(queue.offer(_)).concurrently(payloads.map(writeChunk).flatMap(Stream.chunk(_)).through(writePipe))
     }
 
   /** Split a stream of bytes into payloads by extracting each frame based on information contained in the headers.
