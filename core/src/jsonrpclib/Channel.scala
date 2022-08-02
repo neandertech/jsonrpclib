@@ -18,7 +18,9 @@ object Channel {
       template match {
         case StubTemplate.RequestResponseTemplate(method, inCodec, errCodec, outCodec) =>
           stub(method)(inCodec, errCodec, outCodec)
-        case StubTemplate.NotificationTemplate(method, inCodec) =>
+        case nt: StubTemplate.NotificationTemplate[in] =>
+          val method = nt.method
+          val inCodec = nt.inCodec
           val stub = notificationStub(method)(inCodec)
           (in: In) => F.doFlatMap(stub(in))(unit => F.doPure(Right(unit)))
       }

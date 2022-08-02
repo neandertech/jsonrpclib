@@ -4,9 +4,7 @@ import munit.FunSuite
 import java.io.ByteArrayInputStream
 import java.io.BufferedReader
 import java.io.InputStreamReader
-import java.util.stream.Collectors
 import jsonrpclib.ProtocolError
-import scala.jdk.CollectionConverters._
 import java.io.IOException
 import java.io.UncheckedIOException
 

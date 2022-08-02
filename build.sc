@@ -19,6 +19,7 @@ object versions {
   val scalaJSVersion = "1.10.1"
   val scalaNativeVersion = "0.4.4"
   val munitVersion = "0.7.29"
+  val munitNativeVersion = "1.0.0-M6"
 
   val scala213 = "2.13"
   val scala212 = "2.12"
@@ -150,7 +151,7 @@ trait RPCCrossPlatformModule extends Module { shared =>
     override def skipBloop = true
 
     trait MunitTests extends Tests with TestModule.Munit {
-      def ivyDeps = super.ivyDeps() ++ Agg(ivy"org.scalameta::munit::$munitVersion")
+      def ivyDeps = super.ivyDeps() ++ Agg(ivy"org.scalameta::munit::$munitNativeVersion")
     }
 
     trait Tests extends super.Tests with mill.contrib.Bloop.Module {
