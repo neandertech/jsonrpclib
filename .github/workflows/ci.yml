@@ -28,5 +28,6 @@ jobs:
 
     - name: Run tests
       run: |
+        mill -k --disable-ticker __.resolvedIvyDeps &&
         mill -j 0 -k --disable-ticker __.checkFormat &&
         mill -j 0 -k --disable-ticker __.test
