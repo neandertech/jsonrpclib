@@ -1,4 +1,4 @@
-package jsonrpclib.fs2interop.internals
+package jsonrpclib.fs2.internals
 
 import cats.MonadThrow
 import cats.effect.Concurrent

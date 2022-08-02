@@ -1,5 +1,5 @@
 package jsonrpclib
-package fs2interop
+package fs2
 
 import _root_.fs2.Pipe
 import _root_.fs2.Stream

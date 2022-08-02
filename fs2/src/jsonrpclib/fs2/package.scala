@@ -4,7 +4,7 @@ import _root_.fs2.Stream
 import cats.MonadThrow
 import cats.Monad
 
-package object fs2interop {
+package object fs2 {
 
   private[jsonrpclib] implicit class EffectOps[F[_], A](private val fa: F[A]) extends AnyVal {
     def toStream: Stream[F, A] = Stream.eval(fa)

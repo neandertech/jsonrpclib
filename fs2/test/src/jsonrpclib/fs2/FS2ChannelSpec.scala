@@ -1,4 +1,4 @@
-package jsonrpclib.fs2interop
+package jsonrpclib.fs2
 
 import cats.effect.IO
 import cats.effect.implicits._
@@ -8,7 +8,7 @@ import com.github.plokhotnyuk.jsoniter_scala.core.JsonValueCodec
 import com.github.plokhotnyuk.jsoniter_scala.macros.JsonCodecMaker
 import fs2.Stream
 import jsonrpclib._
-import jsonrpclib.fs2interop.FS2Channel
+import jsonrpclib.fs2.FS2Channel
 import weaver._
 
 import scala.concurrent.duration._
