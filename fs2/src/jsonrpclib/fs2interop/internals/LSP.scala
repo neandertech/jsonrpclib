@@ -2,8 +2,6 @@ package jsonrpclib.fs2interop.internals
 
 import cats.MonadThrow
 import cats.effect.Concurrent
-import cats.effect.implicits._
-import cats.effect.kernel.Resource
 import cats.effect.std.Queue
 import cats.implicits._
 import fs2.Chunk
@@ -119,7 +117,7 @@ object LSP {
         var newState: ScanState = null
         var error: ParseError = null
         while (iterator.hasNext && continue) {
-          val byte = iterator.next
+          val byte = iterator.next()
           if (byte == newlineByte) {
             parseHeader(new String(bb.array, StandardCharsets.US_ASCII), headers) match {
               case Right(newHeader) =>

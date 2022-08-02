@@ -6,6 +6,9 @@ import java.io.BufferedReader
 import java.io.InputStreamReader
 import java.util.stream.Collectors
 import jsonrpclib.ProtocolError
+import scala.jdk.CollectionConverters._
+import java.io.IOException
+import java.io.UncheckedIOException
 
 class HeaderSpec() extends FunSuite {
 
@@ -50,13 +53,39 @@ class HeaderSpec() extends FunSuite {
 
   case class Result(header: LSPHeaders, rest: String)
   def read(lines: String*): Either[ProtocolError.ParseError, Result] = {
-    var rest: String = null
     val inputStream = new ByteArrayInputStream(lines.mkString("\n").getBytes());
     try {
       val maybeHeaders = LSPHeaders.readNext(inputStream)
       maybeHeaders.map { headers =>
         // Consuming the rest to check that the header parsing did not read more of the input stream than it should
-        val rest = new BufferedReader(new InputStreamReader(inputStream)).lines().collect(Collectors.joining("\n"))
+        val bufferedReader = new BufferedReader(new InputStreamReader(inputStream))
+        val iter = new Iterator[String] {
+          var nextLine: String = null;
+
+          def hasNext: Boolean = {
+            if (nextLine != null) {
+              true;
+            } else {
+              try {
+                nextLine = bufferedReader.readLine();
+                nextLine != null
+              } catch {
+                case e: IOException => throw new UncheckedIOException(e)
+              }
+            }
+          }
+
+          def next(): String = {
+            if (nextLine != null || hasNext) {
+              val line = nextLine;
+              nextLine = null;
+              return line;
+            } else {
+              throw new NoSuchElementException()
+            }
+          }
+        };
+        val rest = iter.mkString("\n")
         Result(headers, rest)
       }
     } finally {

@@ -3,8 +3,6 @@ package internals
 
 import com.github.plokhotnyuk.jsoniter_scala.core._
 import com.github.plokhotnyuk.jsoniter_scala.macros.JsonCodecMaker
-import java.io.OutputStream
-import java.io.InputStream
 
 private[jsonrpclib] case class RawMessage(
     jsonrpc: String,

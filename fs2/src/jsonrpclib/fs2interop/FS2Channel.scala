@@ -4,23 +4,15 @@ package fs2interop
 import _root_.fs2.Pipe
 import _root_.fs2.Stream
 import cats.Applicative
-import cats.Defer
 import cats.Functor
 import cats.Monad
 import cats.MonadThrow
-import cats.data.Kleisli
-import cats.effect.implicits._
 import cats.effect.kernel._
 import cats.effect.std.Supervisor
-import cats.effect.std.syntax.supervisor
 import cats.syntax.all._
-import jsonrpclib.StubTemplate._
 import jsonrpclib.internals.MessageDispatcher
-import jsonrpclib.internals.OutputMessage._
 import jsonrpclib.internals._
 
-import scala.util.Failure
-import scala.util.Success
 import scala.util.Try
 
 trait FS2Channel[F[_]] extends Channel[F] {
@@ -85,12 +77,15 @@ object FS2Channel {
       extends MessageDispatcher[F]
       with FS2Channel[F] {
 
-    def mountEndpoint(endpoint: Endpoint[F]): F[Unit] = state.modify(s =>
-      s.mountEndpoint(endpoint) match {
-        case Left(error)  => (s, MonadThrow[F].raiseError(error))
-        case Right(value) => (value, Applicative[F].unit)
-      }
-    )
+    def mountEndpoint(endpoint: Endpoint[F]): F[Unit] = state
+      .modify(s =>
+        s.mountEndpoint(endpoint) match {
+          case Left(error)  => (s, MonadThrow[F].raiseError[Unit](error))
+          case Right(value) => (value, Applicative[F].unit)
+        }
+      )
+      .flatMap(identity)
+
     def unmountEndpoint(method: String): F[Unit] = state.update(_.removeEndpoint(method))
 
     protected def background[A](fa: F[A]): F[Unit] = supervisor.supervise(fa).void

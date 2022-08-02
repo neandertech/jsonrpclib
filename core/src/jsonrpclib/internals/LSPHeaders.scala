@@ -1,13 +1,8 @@
 package jsonrpclib
 package internals
 
-import java.io.BufferedReader
-import java.io.BufferedWriter
-import java.io.DataInputStream
-import java.io.DataOutputStream
 import java.io.InputStream
 import java.io.OutputStream
-import java.io.Reader
 import java.nio.charset.StandardCharsets
 
 // Content-Length: ...\r\n

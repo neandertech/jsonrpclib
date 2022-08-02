@@ -1,18 +1,12 @@
 package jsonrpclib.fs2interop
 
-import cats.data.Chain
 import cats.effect.IO
 import cats.effect.implicits._
-import cats.effect.kernel.Ref
-import cats.effect.kernel.Resource
 import cats.effect.std.Queue
 import cats.syntax.all._
 import com.github.plokhotnyuk.jsoniter_scala.core.JsonValueCodec
 import com.github.plokhotnyuk.jsoniter_scala.macros.JsonCodecMaker
 import fs2.Stream
-import jsonrpclib.Codec
-import jsonrpclib.Endpoint
-import jsonrpclib.Payload
 import jsonrpclib._
 import jsonrpclib.fs2interop.FS2Channel
 import weaver._
@@ -50,7 +44,7 @@ object FS2ChannelSpec extends SimpleIOSuite {
     for {
       stdout <- Queue.bounded[IO, Payload](10).toStream
       stdin <- Queue.bounded[IO, Payload](10).toStream
-      serverSideChannel <- FS2Channel[IO](Stream.fromQueueUnterminated(stdin), stdout.offer)
+      _ <- FS2Channel[IO](Stream.fromQueueUnterminated(stdin), stdout.offer)
       clientSideChannel <- FS2Channel[IO](Stream.fromQueueUnterminated(stdout), stdin.offer)
       remoteFunction = clientSideChannel.simpleStub[IntWrapper, IntWrapper]("inc")
       result <- remoteFunction(IntWrapper(1)).attempt.toStream

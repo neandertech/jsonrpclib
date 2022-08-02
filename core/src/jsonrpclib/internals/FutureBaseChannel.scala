@@ -1,7 +1,5 @@
 package jsonrpclib
 
-import jsonrpclib.Endpoint.NotificationEndpoint
-import jsonrpclib.Endpoint.RequestResponseEndpoint
 import jsonrpclib.internals._
 
 import java.util.concurrent.atomic.AtomicLong
@@ -21,7 +19,7 @@ abstract class FutureBasedChannel(endpoints: List[Endpoint[Future]])(implicit ec
   }
 
   protected def storePendingCall(callId: CallId, handle: OutputMessage => Future[Unit]): Future[Unit] =
-    Future.successful(pending.put(callId, handle))
+    Future.successful { val _ = pending.put(callId, handle) }
   protected def removePendingCall(callId: CallId): Future[Option[OutputMessage => Future[Unit]]] =
     Future.successful { Option(pending.remove(callId)) }
   protected def getEndpoint(method: String): Future[Option[Endpoint[Future]]] =
@@ -34,8 +32,8 @@ abstract class FutureBasedChannel(endpoints: List[Endpoint[Future]])(implicit ec
   private[this] val endpointsMap: Map[String, Endpoint[Future]] = endpoints.map(ep => ep.method -> ep).toMap
   private[this] val pending = new java.util.concurrent.ConcurrentHashMap[CallId, OutputMessage => Future[Unit]]
   private[this] val nextID = new AtomicLong(0L)
-  @volatile
-  private[this] var closeReason: Throwable = _
+  // @volatile
+  // private[this] var closeReason: Throwable = _
 
   def sendPayload(msg: Payload): Future[Unit] = ???
   def reportError(params: Option[Payload], error: ProtocolError, method: String): Future[Unit] = ???

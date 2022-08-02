@@ -1,15 +1,9 @@
 package jsonrpclib
 package internals
 
-import scala.concurrent.ExecutionContext
-import scala.concurrent.Future
 import jsonrpclib.internals._
-import scala.concurrent.Promise
-import java.util.concurrent.atomic.AtomicLong
 import jsonrpclib.Endpoint.NotificationEndpoint
 import jsonrpclib.Endpoint.RequestResponseEndpoint
-import jsonrpclib.StubTemplate.NotificationTemplate
-import jsonrpclib.StubTemplate.RequestResponseTemplate
 import jsonrpclib.internals.OutputMessage.ErrorMessage
 import jsonrpclib.internals.OutputMessage.ResponseMessage
 import scala.util.Try
@@ -41,7 +35,7 @@ private[jsonrpclib] abstract class MessageDispatcher[F[_]](implicit F: Monadic[F
       doFlatMap(nextCallId()) { callId =>
         val message = InputMessage.RequestMessage(method, callId, Some(encoded))
         doFlatMap(createPromise[Either[Err, Out]]()) { case (fulfill, future) =>
-          val pc = createPendingCall(method, errCodec, outCodec, fulfill)
+          val pc = createPendingCall(errCodec, outCodec, fulfill)
           doFlatMap(storePendingCall(callId, pc))(_ => doFlatMap(sendMessage(message))(_ => future()))
         }
       }
@@ -100,11 +94,11 @@ private[jsonrpclib] abstract class MessageDispatcher[F[_]](implicit F: Monadic[F
           case Left(pError) =>
             sendProtocolError(callId, pError)
         }
-      case (InputMessage.NotificationMessage(_, params), ep: RequestResponseEndpoint[F, in, err, out]) =>
+      case (InputMessage.NotificationMessage(_, _), ep: RequestResponseEndpoint[F, in, err, out]) =>
         val message = s"This ${ep.method} endpoint cannot process notifications, request is missing callId"
         val pError = ProtocolError.InvalidRequest(message)
         sendProtocolError(pError)
-      case (InputMessage.RequestMessage(method, callId, params), ep: NotificationEndpoint[F, in]) =>
+      case (InputMessage.RequestMessage(_, _, _), ep: NotificationEndpoint[F, in]) =>
         val message = s"This ${ep.method} endpoint expects notifications and cannot return a result"
         val pError = ProtocolError.InvalidRequest(message)
         sendProtocolError(pError)
@@ -112,7 +106,6 @@ private[jsonrpclib] abstract class MessageDispatcher[F[_]](implicit F: Monadic[F
   }
 
   private def createPendingCall[Err, Out](
-      method: String,
       errCodec: ErrorCodec[Err],
       outCodec: Codec[Out],
       fulfill: Try[Either[Err, Out]] => F[Unit]
