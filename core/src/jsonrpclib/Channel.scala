@@ -1,8 +1,5 @@
 package jsonrpclib
 
-import jsonrpclib.StubTemplate.NotificationTemplate
-import jsonrpclib.StubTemplate.RequestResponseTemplate
-
 trait Channel[F[_]] {
   def mountEndpoint(endpoint: Endpoint[F]): F[Unit]
   def unmountEndpoint(method: String): F[Unit]
@@ -19,11 +16,11 @@ object Channel {
 
     final def stub[In, Err, Out](template: StubTemplate[In, Err, Out]): In => F[Either[Err, Out]] =
       template match {
-        case NotificationTemplate(method, inCodec) =>
+        case StubTemplate.RequestResponseTemplate(method, inCodec, errCodec, outCodec) =>
+          stub(method)(inCodec, errCodec, outCodec)
+        case StubTemplate.NotificationTemplate(method, inCodec) =>
           val stub = notificationStub(method)(inCodec)
           (in: In) => F.doFlatMap(stub(in))(unit => F.doPure(Right(unit)))
-        case RequestResponseTemplate(method, inCodec, errCodec, outCodec) =>
-          stub(method)(inCodec, errCodec, outCodec)
       }
 
     final def simpleStub[In: Codec, Out: Codec](method: String): In => F[Out] = {

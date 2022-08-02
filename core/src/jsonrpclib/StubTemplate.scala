@@ -14,6 +14,7 @@ object StubTemplate {
       method: String,
       inCodec: Codec[In]
   ) extends StubTemplate[In, Nothing, Unit]
+
   final case class RequestResponseTemplate[In, Err, Out](
       method: String,
       inCodec: Codec[In],

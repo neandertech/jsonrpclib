@@ -1,25 +1,28 @@
 import $ivy.`com.lihaoyi::mill-contrib-bloop:$MILL_VERSION`
-import $ivy.`io.github.davidgregory084::mill-tpolecat::0.3.0`
+import $ivy.`io.github.davidgregory084::mill-tpolecat::0.3.1`
+import $ivy.`de.tototec::de.tobiasroeser.mill.vcs.version::0.1.4`
 
 import os.Path
 import mill._
 import scalalib._
+import publish._
 import scalajslib._
 import scalanativelib._
 import mill.scalajslib.api._
-import io.github.davidgregory084.TpolecatModule
+import io.github.davidgregory084._
+import de.tobiasroeser.mill.vcs.version.VcsVersion
 
 object versions {
   val scala212Version = "2.12.16"
   val scala213Version = "2.13.8"
   val scala3Version = "3.1.2"
-  val scalaJSVersion = "1.10.0"
+  val scalaJSVersion = "1.10.1"
   val scalaNativeVersion = "0.4.4"
   val munitVersion = "0.7.29"
 
   val scala213 = "2.13"
   val scala212 = "2.12"
-  val scala3 = "scala3"
+  val scala3 = "3"
 
   val crossMap = Map(
     "2.13" -> scala213Version,
@@ -94,6 +97,7 @@ trait RPCCrossPlatformModule extends Module { shared =>
     }
 
     trait Tests extends super.Tests {
+      override def sources = T.sources(computeSources(this).map(PathRef(_)))
       override def moduleDeps = super.moduleDeps ++ shared.crossPlatformTestModuleDeps.flatMap(matchingCross)
     }
   }
@@ -119,6 +123,7 @@ trait RPCCrossPlatformModule extends Module { shared =>
     }
 
     trait Tests extends super.Tests with mill.contrib.Bloop.Module {
+      override def sources = T.sources(computeSources(this).map(PathRef(_)))
       override def skipIdea = true
       override def skipBloop = true
       override def moduleDeps = super.moduleDeps ++ shared.crossPlatformTestModuleDeps.flatMap(matchingCross).collect {
@@ -152,6 +157,7 @@ trait RPCCrossPlatformModule extends Module { shared =>
       override def nativeLinkStubs = true
       override def skipIdea = true
       override def skipBloop = true
+      override def sources = T.sources(computeSources(this).map(PathRef(_)))
       override def moduleDeps = super.moduleDeps ++ shared.crossPlatformTestModuleDeps.flatMap(matchingCross).collect {
         case m: ScalaNativeModule => m
       }
@@ -200,27 +206,34 @@ trait RPCCrossPlatformModule extends Module { shared =>
 
     override def artifactName = shared.artifactName
 
-    override def sources = self match {
-      case _: ScalaJSModule =>
-        T.sources(
-          millSourcePath / 'src,
-          millSourcePath / s"src-js",
-          millSourcePath / s"src-jvm-js"
-        )
-      case _: ScalaNativeModule =>
-        T.sources(
-          millSourcePath / 'src,
-          millSourcePath / s"src-jvm-native",
-          millSourcePath / s"src-native"
-        )
-      case _ =>
-        T.sources(
-          millSourcePath / 'src,
-          millSourcePath / s"src-jvm",
-          millSourcePath / s"src-jvm-js",
-          millSourcePath / s"src-jvm-native"
-        )
+    def computeSources(module: mill.define.Module): Seq[os.Path] = {
+      val modulePath = module.millSourcePath
+      module match {
+        case _: ScalaJSModule =>
+          Seq(
+            modulePath / 'src,
+            modulePath / s"src-js",
+            modulePath / s"src-jvm-js",
+            modulePath / s"src-js-native"
+          )
+        case _: ScalaNativeModule =>
+          Seq(
+            modulePath / 'src,
+            modulePath / s"src-native",
+            modulePath / s"src-jvm-native",
+            modulePath / s"src-js-native"
+          )
+        case _ =>
+          Seq(
+            modulePath / 'src,
+            modulePath / s"src-jvm",
+            modulePath / s"src-jvm-js",
+            modulePath / s"src-jvm-native"
+          )
+      }
     }
+
+    override def sources = T.sources(computeSources(self).map(PathRef(_)))
 
     override def skipBloop = {
       self match {
@@ -233,9 +246,29 @@ trait RPCCrossPlatformModule extends Module { shared =>
   }
 }
 
-trait JsonRPCModule extends ScalaModule with TpolecatModule with scalafmt.ScalafmtModule {
+trait JsonRPCModule extends ScalaModule with PublishModule with scalafmt.ScalafmtModule {
   def scalafmt() = T.command(reformat())
   def fmt() = T.command(reformat())
   def refreshedEnv = T.input(T.ctx().env)
+  def publishVersion = T {
+    if (refreshedEnv().contains("CI")) {
+      VcsVersion.vcsState().format().drop("v".length)
+    } else "dev"
+  }
+  override def scalacOptions = T {
+    super.scalacOptions() ++ Tpolecat.scalacOptionsFor(scalaVersion())
+  }
+
   override def forkEnv = T { refreshedEnv() }
+
+  def pomSettings = PomSettings(
+    description = "A Scala jsonrpc library",
+    organization = "tech.neander",
+    url = "https://github.com/neandertech/jsonrpclib",
+    licenses = Seq(License.`Apache-2.0`),
+    versionControl = VersionControl(Some("https://github.com/neandertech/jsonrpclib")),
+    developers = Seq(
+      Developer("Baccata", "Olivier Mélois", "https://github.com/baccata")
+    )
+  )
 }

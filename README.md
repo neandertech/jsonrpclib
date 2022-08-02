@@ -1,3 +1,11 @@
+# jsonrpclib
+
+This is a cross-platform, cross-scala-version [jsonrpc](https://www.jsonrpc.org/) library that provides construct for bidirectional communication using
+the jsonrpc protocol.
+
+This library does not enforce any transport, and works as long as you can provide input/output byte streams.
+
+
 ## Dev Notes
 
 ### Scala-native
