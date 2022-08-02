@@ -1,0 +1,29 @@
+name: CI
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout
+      uses: actions/checkout@v2
+
+    - name: Setup Java
+      uses: actions/setup-java@v2
+      with:
+          distribution: adopt
+          java-version: 11
+
+    - name: Setup Mill
+      uses: jodersky/setup-mill@master
+      with:
+        mill-version: 0.10.5
+
+    - name: Run tests
+      run: |
+        mill -k --disable-ticker __.checkFormat &&
+        mill -k --disable-ticker __.test
