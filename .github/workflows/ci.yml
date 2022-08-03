@@ -63,5 +63,7 @@ jobs:
           --publishArtifacts __.publishArtifacts \
           --sonatypeCreds ${{ secrets.SONATYPE_USERNAME }}:${{secrets.SONATYPE_PASSWORD }} \
           --gpgArgs '--passphrase=${{ secrets.PGP_PASSPHRASE }},--batch,--yes,-a,-b' \
+          --sonatypeUri https://s01.oss.sonatype.org/service/local \
+          --sonatypeSnapshotUri https://s01.oss.sonatype.org/content/repositories/snapshots \
           --signed true \
           --release true
