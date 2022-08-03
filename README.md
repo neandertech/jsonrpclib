@@ -1,3 +1,5 @@
+[![CI](https://github.com/neandertech/jsonrpclib/actions/workflows/ci.yml/badge.svg)](https://github.com/neandertech/jsonrpclib/actions/workflows/ci.yml)
+
 # jsonrpclib
 
 This is a cross-platform, cross-scala-version [jsonrpc](https://www.jsonrpc.org/) library that provides construct for bidirectional communication using
