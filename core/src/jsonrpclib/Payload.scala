@@ -12,17 +12,9 @@ final case class Payload(array: Array[Byte]) {
     case _              => false
   }
 
-  override def hashCode(): Int = {
-    var hashCode = 0
-    var i = 0
-    while (i < array.length) {
-      hashCode += array(i).hashCode()
-      i += 1
-    }
-    hashCode
-  }
+  override lazy val hashCode: Int = java.util.Arrays.hashCode(array)
 
-  override def toString = Base64.getEncoder().encodeToString(array)
+  override def toString = Base64.getEncoder.encodeToString(array)
 }
 object Payload {
 
