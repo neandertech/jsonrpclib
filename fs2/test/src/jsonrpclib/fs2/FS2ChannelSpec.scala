@@ -21,7 +21,7 @@ object FS2ChannelSpec extends SimpleIOSuite {
   }
 
   def testRes(name: TestName)(run: Stream[IO, Expectations]): Unit =
-    test(name)(run.compile.lastOrError)
+    test(name)(run.compile.lastOrError.timeout(10.second))
 
   testRes("Round trip") {
     val endpoint: Endpoint[IO] = Endpoint[IO]("inc").simple((int: IntWrapper) => IO(IntWrapper(int.int + 1)))
@@ -31,8 +31,10 @@ object FS2ChannelSpec extends SimpleIOSuite {
       stdin <- Queue.bounded[IO, Payload](10).toStream
       serverSideChannel <- FS2Channel[IO](Stream.fromQueueUnterminated(stdin), stdout.offer)
       clientSideChannel <- FS2Channel[IO](Stream.fromQueueUnterminated(stdout), stdin.offer)
-      _ <- Stream.resource(serverSideChannel.withEndpoint(endpoint))
+      _ <- serverSideChannel.withEndpoint(endpoint).asStream
       remoteFunction = clientSideChannel.simpleStub[IntWrapper, IntWrapper]("inc")
+      _ <- serverSideChannel.open.asStream
+      _ <- clientSideChannel.open.asStream
       result <- remoteFunction(IntWrapper(1)).toStream
     } yield {
       expect.same(result, IntWrapper(2))
@@ -44,9 +46,11 @@ object FS2ChannelSpec extends SimpleIOSuite {
     for {
       stdout <- Queue.bounded[IO, Payload](10).toStream
       stdin <- Queue.bounded[IO, Payload](10).toStream
-      _ <- FS2Channel[IO](Stream.fromQueueUnterminated(stdin), stdout.offer)
+      serverSideChannel <- FS2Channel[IO](Stream.fromQueueUnterminated(stdin), stdout.offer)
       clientSideChannel <- FS2Channel[IO](Stream.fromQueueUnterminated(stdout), stdin.offer)
       remoteFunction = clientSideChannel.simpleStub[IntWrapper, IntWrapper]("inc")
+      _ <- serverSideChannel.open.asStream
+      _ <- clientSideChannel.open.asStream
       result <- remoteFunction(IntWrapper(1)).attempt.toStream
     } yield {
       expect.same(result, Left(ErrorPayload(-32601, "Method inc not found", None)))
@@ -65,8 +69,10 @@ object FS2ChannelSpec extends SimpleIOSuite {
       stdin <- Queue.bounded[IO, Payload](10).toStream
       serverSideChannel <- FS2Channel[IO](Stream.fromQueueUnterminated(stdin), payload => stdout.offer(payload))
       clientSideChannel <- FS2Channel[IO](Stream.fromQueueUnterminated(stdout), payload => stdin.offer(payload))
-      _ <- Stream.resource(serverSideChannel.withEndpoint(endpoint))
+      _ <- serverSideChannel.withEndpoint(endpoint).asStream
       remoteFunction = clientSideChannel.simpleStub[IntWrapper, IntWrapper]("inc")
+      _ <- serverSideChannel.open.asStream
+      _ <- clientSideChannel.open.asStream
       timedResults <- (1 to 10).toList.map(IntWrapper(_)).parTraverse(remoteFunction).timed.toStream
     } yield {
       val (time, results) = timedResults

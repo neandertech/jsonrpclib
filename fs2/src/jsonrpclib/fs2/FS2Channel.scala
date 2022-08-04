@@ -14,6 +14,7 @@ import jsonrpclib.internals.MessageDispatcher
 import jsonrpclib.internals._
 
 import scala.util.Try
+import _root_.fs2.concurrent.SignallingRef
 
 trait FS2Channel[F[_]] extends Channel[F] {
   def withEndpoint(endpoint: Endpoint[F])(implicit F: Functor[F]): Resource[F, Unit] =
@@ -21,6 +22,8 @@ trait FS2Channel[F[_]] extends Channel[F] {
 
   def withEndpoints(endpoint: Endpoint[F], rest: Endpoint[F]*)(implicit F: Monad[F]): Resource[F, Unit] =
     (endpoint :: rest.toList).traverse_(withEndpoint)
+
+  def open: Resource[F, Unit]
 }
 
 object FS2Channel {
@@ -42,16 +45,22 @@ object FS2Channel {
     val endpointsMap = startingEndpoints.map(ep => ep.method -> ep).toMap
     for {
       supervisor <- Stream.resource(Supervisor[F])
-      ref <- Ref[F].of(State[F](Map.empty, endpointsMap, 0)).toStream
-      impl = new Impl(payloadSink, ref, supervisor)
-      _ <- Stream(()).concurrently(payloadStream.evalMap(impl.handleReceivedPayload))
+      ref <- Ref[F].of(State[F](Map.empty, endpointsMap, 0, false)).toStream
+      isOpen <- SignallingRef[F].of(false).toStream
+      impl = new Impl(payloadSink, ref, isOpen, supervisor)
+      _ <- Stream(()).concurrently {
+        // Gatekeeping the pull until the channel is actually marked as open
+        val wait = isOpen.waitUntil(identity)
+        payloadStream.evalTap(_ => wait).evalMap(impl.handleReceivedPayload)
+      }
     } yield impl
   }
 
   private case class State[F[_]](
       pendingCalls: Map[CallId, OutputMessage => F[Unit]],
       endpoints: Map[String, Endpoint[F]],
-      counter: Long
+      counter: Long,
+      isOpen: Boolean
   ) {
     def nextCallId: (State[F], CallId) = (this.copy(counter = counter + 1), CallId.NumberId(counter))
     def storePendingCall(callId: CallId, handle: OutputMessage => F[Unit]): State[F] =
@@ -67,11 +76,15 @@ object FS2Channel {
       }
     def removeEndpoint(method: String): State[F] =
       copy(endpoints = endpoints.removed(method))
+
+    def open: State[F] = copy(isOpen = true)
+    def close: State[F] = copy(isOpen = false)
   }
 
   private class Impl[F[_]](
       private val sink: Payload => F[Unit],
       private val state: Ref[F, FS2Channel.State[F]],
+      private val isOpen: SignallingRef[F, Boolean],
       supervisor: Supervisor[F]
   )(implicit F: Concurrent[F])
       extends MessageDispatcher[F]
@@ -87,6 +100,8 @@ object FS2Channel {
       .flatMap(identity)
 
     def unmountEndpoint(method: String): F[Unit] = state.update(_.removeEndpoint(method))
+
+    def open: Resource[F, Unit] = Resource.make[F, Unit](isOpen.set(true))(_ => isOpen.set(false))
 
     protected def background[A](fa: F[A]): F[Unit] = supervisor.supervise(fa).void
     protected def reportError(params: Option[Payload], error: ProtocolError, method: String): F[Unit] = ???
