@@ -24,6 +24,7 @@ trait FS2Channel[F[_]] extends Channel[F] {
     (endpoint :: rest.toList).traverse_(withEndpoint)
 
   def open: Resource[F, Unit]
+  def openStream: Stream[F, Unit]
 }
 
 object FS2Channel {
@@ -102,6 +103,7 @@ object FS2Channel {
     def unmountEndpoint(method: String): F[Unit] = state.update(_.removeEndpoint(method))
 
     def open: Resource[F, Unit] = Resource.make[F, Unit](isOpen.set(true))(_ => isOpen.set(false))
+    def openStream: Stream[F, Unit] = Stream.resource(open)
 
     protected def background[A](fa: F[A]): F[Unit] = supervisor.supervise(fa).void
     protected def reportError(params: Option[Payload], error: ProtocolError, method: String): F[Unit] = ???
