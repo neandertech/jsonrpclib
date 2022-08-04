@@ -32,21 +32,18 @@ object FS2Channel {
   def lspCompliant[F[_]: Concurrent](
       byteStream: Stream[F, Byte],
       byteSink: Pipe[F, Byte, Nothing],
-      startingEndpoints: List[Endpoint[F]] = List.empty,
       bufferSize: Int = 512
   ): Stream[F, FS2Channel[F]] = internals.LSP.writeSink(byteSink, bufferSize).flatMap { sink =>
-    apply[F](internals.LSP.readStream(byteStream), sink, startingEndpoints)
+    apply[F](internals.LSP.readStream(byteStream), sink)
   }
 
   def apply[F[_]: Concurrent](
       payloadStream: Stream[F, Payload],
-      payloadSink: Payload => F[Unit],
-      startingEndpoints: List[Endpoint[F]] = List.empty[Endpoint[F]]
+      payloadSink: Payload => F[Unit]
   ): Stream[F, FS2Channel[F]] = {
-    val endpointsMap = startingEndpoints.map(ep => ep.method -> ep).toMap
     for {
       supervisor <- Stream.resource(Supervisor[F])
-      ref <- Ref[F].of(State[F](Map.empty, endpointsMap, 0)).toStream
+      ref <- Ref[F].of(State[F](Map.empty, Map.empty, 0)).toStream
       isOpen <- SignallingRef[F].of(false).toStream
       awaitingSink = isOpen.waitUntil(identity) >> payloadSink(_: Payload)
       impl = new Impl(awaitingSink, ref, isOpen, supervisor)
