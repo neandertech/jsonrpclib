@@ -48,7 +48,8 @@ object FS2Channel {
       supervisor <- Stream.resource(Supervisor[F])
       ref <- Ref[F].of(State[F](Map.empty, endpointsMap, 0, false)).toStream
       isOpen <- SignallingRef[F].of(false).toStream
-      impl = new Impl(payloadSink, ref, isOpen, supervisor)
+      awaitingSink = isOpen.waitUntil(identity) >> payloadSink(_: Payload)
+      impl = new Impl(awaitingSink, ref, isOpen, supervisor)
       _ <- Stream(()).concurrently {
         // Gatekeeping the pull until the channel is actually marked as open
         val wait = isOpen.waitUntil(identity)
