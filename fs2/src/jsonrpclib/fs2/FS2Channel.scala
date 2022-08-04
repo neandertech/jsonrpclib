@@ -49,8 +49,7 @@ object FS2Channel {
       impl = new Impl(awaitingSink, ref, isOpen, supervisor)
       _ <- Stream(()).concurrently {
         // Gatekeeping the pull until the channel is actually marked as open
-        val wait = isOpen.waitUntil(identity)
-        payloadStream.evalTap(_ => wait).evalMap(impl.handleReceivedPayload)
+        payloadStream.pauseWhen(isOpen.map(b => !b)).evalMap(impl.handleReceivedPayload)
       }
     } yield impl
   }
