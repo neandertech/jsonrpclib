@@ -46,7 +46,7 @@ object FS2Channel {
     val endpointsMap = startingEndpoints.map(ep => ep.method -> ep).toMap
     for {
       supervisor <- Stream.resource(Supervisor[F])
-      ref <- Ref[F].of(State[F](Map.empty, endpointsMap, 0, false)).toStream
+      ref <- Ref[F].of(State[F](Map.empty, endpointsMap, 0)).toStream
       isOpen <- SignallingRef[F].of(false).toStream
       awaitingSink = isOpen.waitUntil(identity) >> payloadSink(_: Payload)
       impl = new Impl(awaitingSink, ref, isOpen, supervisor)
@@ -61,8 +61,7 @@ object FS2Channel {
   private case class State[F[_]](
       pendingCalls: Map[CallId, OutputMessage => F[Unit]],
       endpoints: Map[String, Endpoint[F]],
-      counter: Long,
-      isOpen: Boolean
+      counter: Long
   ) {
     def nextCallId: (State[F], CallId) = (this.copy(counter = counter + 1), CallId.NumberId(counter))
     def storePendingCall(callId: CallId, handle: OutputMessage => F[Unit]): State[F] =
@@ -78,9 +77,6 @@ object FS2Channel {
       }
     def removeEndpoint(method: String): State[F] =
       copy(endpoints = endpoints.removed(method))
-
-    def open: State[F] = copy(isOpen = true)
-    def close: State[F] = copy(isOpen = false)
   }
 
   private class Impl[F[_]](
