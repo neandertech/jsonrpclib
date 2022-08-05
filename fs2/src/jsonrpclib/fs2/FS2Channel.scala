@@ -14,6 +14,7 @@ import jsonrpclib.internals.MessageDispatcher
 import jsonrpclib.internals._
 
 import scala.util.Try
+import _root_.fs2.concurrent.SignallingRef
 
 trait FS2Channel[F[_]] extends Channel[F] {
   def withEndpoint(endpoint: Endpoint[F])(implicit F: Functor[F]): Resource[F, Unit] =
@@ -21,6 +22,9 @@ trait FS2Channel[F[_]] extends Channel[F] {
 
   def withEndpoints(endpoint: Endpoint[F], rest: Endpoint[F]*)(implicit F: Monad[F]): Resource[F, Unit] =
     (endpoint :: rest.toList).traverse_(withEndpoint)
+
+  def open: Resource[F, Unit]
+  def openStream: Stream[F, Unit]
 }
 
 object FS2Channel {
@@ -28,23 +32,25 @@ object FS2Channel {
   def lspCompliant[F[_]: Concurrent](
       byteStream: Stream[F, Byte],
       byteSink: Pipe[F, Byte, Nothing],
-      startingEndpoints: List[Endpoint[F]] = List.empty,
       bufferSize: Int = 512
   ): Stream[F, FS2Channel[F]] = internals.LSP.writeSink(byteSink, bufferSize).flatMap { sink =>
-    apply[F](internals.LSP.readStream(byteStream), sink, startingEndpoints)
+    apply[F](internals.LSP.readStream(byteStream), sink)
   }
 
   def apply[F[_]: Concurrent](
       payloadStream: Stream[F, Payload],
-      payloadSink: Payload => F[Unit],
-      startingEndpoints: List[Endpoint[F]] = List.empty[Endpoint[F]]
+      payloadSink: Payload => F[Unit]
   ): Stream[F, FS2Channel[F]] = {
-    val endpointsMap = startingEndpoints.map(ep => ep.method -> ep).toMap
     for {
       supervisor <- Stream.resource(Supervisor[F])
-      ref <- Ref[F].of(State[F](Map.empty, endpointsMap, 0)).toStream
-      impl = new Impl(payloadSink, ref, supervisor)
-      _ <- Stream(()).concurrently(payloadStream.evalMap(impl.handleReceivedPayload))
+      ref <- Ref[F].of(State[F](Map.empty, Map.empty, 0)).toStream
+      isOpen <- SignallingRef[F].of(false).toStream
+      awaitingSink = isOpen.waitUntil(identity) >> payloadSink(_: Payload)
+      impl = new Impl(awaitingSink, ref, isOpen, supervisor)
+      _ <- Stream(()).concurrently {
+        // Gatekeeping the pull until the channel is actually marked as open
+        payloadStream.pauseWhen(isOpen.map(b => !b)).evalMap(impl.handleReceivedPayload)
+      }
     } yield impl
   }
 
@@ -72,6 +78,7 @@ object FS2Channel {
   private class Impl[F[_]](
       private val sink: Payload => F[Unit],
       private val state: Ref[F, FS2Channel.State[F]],
+      private val isOpen: SignallingRef[F, Boolean],
       supervisor: Supervisor[F]
   )(implicit F: Concurrent[F])
       extends MessageDispatcher[F]
@@ -87,6 +94,9 @@ object FS2Channel {
       .flatMap(identity)
 
     def unmountEndpoint(method: String): F[Unit] = state.update(_.removeEndpoint(method))
+
+    def open: Resource[F, Unit] = Resource.make[F, Unit](isOpen.set(true))(_ => isOpen.set(false))
+    def openStream: Stream[F, Unit] = Stream.resource(open)
 
     protected def background[A](fa: F[A]): F[Unit] = supervisor.supervise(fa).void
     protected def reportError(params: Option[Payload], error: ProtocolError, method: String): F[Unit] = ???
