@@ -11,7 +11,7 @@ import scala.util.Try
 abstract class FutureBasedChannel(endpoints: List[Endpoint[Future]])(implicit ec: ExecutionContext)
     extends MessageDispatcher[Future] {
 
-  override def createPromise[A](): Future[(Try[A] => Future[Unit], () => Future[A])] = Future.successful {
+  override def createPromise[A](callId: CallId): Future[(Try[A] => Future[Unit], () => Future[A])] = Future.successful {
     val promise = Promise[A]()
     val fulfill: Try[A] => Future[Unit] = (a: Try[A]) => Future.successful(promise.complete(a))
     val future: () => Future[A] = () => promise.future

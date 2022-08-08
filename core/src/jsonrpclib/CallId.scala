@@ -1,4 +1,4 @@
-package jsonrpclib.internals
+package jsonrpclib
 
 import com.github.plokhotnyuk.jsoniter_scala.core._
 import scala.util.Try
