@@ -20,6 +20,11 @@ object FS2ChannelSpec extends SimpleIOSuite {
     implicit val jcodec: JsonValueCodec[IntWrapper] = JsonCodecMaker.make
   }
 
+  case class CancelRequest(callId: CallId)
+  object CancelRequest {
+    implicit val jcodec: JsonValueCodec[CancelRequest] = JsonCodecMaker.make
+  }
+
   def testRes(name: TestName)(run: Stream[IO, Expectations]): Unit =
     test(name)(run.compile.lastOrError.timeout(10.second))
 
@@ -78,6 +83,31 @@ object FS2ChannelSpec extends SimpleIOSuite {
       val (time, results) = timedResults
       expect.same(results, (2 to 11).toList.map(IntWrapper(_))) &&
       expect(time < 2.seconds)
+    }
+  }
+
+  testRes("cancelation propagates") {
+    val cancelTemplate = CancelTemplate.make[CancelRequest]("$/cancel", _.callId, CancelRequest(_))
+
+    for {
+      canceledPromise <- IO.deferred[IntWrapper].toStream
+      endpoint: Endpoint[IO] = Endpoint[IO]("never").simple((int: IntWrapper) =>
+        IO.never.as(int).onCancel(canceledPromise.complete(int).void)
+      )
+
+      stdin <- Queue.bounded[IO, Payload](10).toStream
+      stdout <- Queue.bounded[IO, Payload](10).toStream
+      serverSideChannel <- FS2Channel[IO](Stream.fromQueueUnterminated(stdin), stdout.offer, Some(cancelTemplate))
+      clientSideChannel <- FS2Channel[IO](Stream.fromQueueUnterminated(stdout), stdin.offer, Some(cancelTemplate))
+      _ <- serverSideChannel.withEndpoint(endpoint).asStream
+      remoteFunction = clientSideChannel.simpleStub[IntWrapper, IntWrapper]("never")
+      _ <- serverSideChannel.open.asStream
+      _ <- clientSideChannel.open.asStream
+      // Timeing-out client-call to verify cancelation progagates to server
+      _ <- IO.race(remoteFunction(IntWrapper(23)), IO.sleep(1.second)).toStream
+      result <- canceledPromise.get.toStream
+    } yield {
+      expect.same(result, IntWrapper(23))
     }
   }
 
