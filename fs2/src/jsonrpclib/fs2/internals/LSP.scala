@@ -14,7 +14,7 @@ import java.nio.charset.StandardCharsets
 object LSP {
 
   def writeSink[F[_]: Concurrent](
-      writePipe: fs2.Pipe[F, Byte, Nothing],
+      writePipe: fs2.Pipe[F, Byte, Unit],
       bufferSize: Int
   ): Stream[F, Payload => F[Unit]] =
     Stream.eval(Queue.bounded[F, Payload](bufferSize)).flatMap { queue =>

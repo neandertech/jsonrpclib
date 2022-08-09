@@ -1,23 +1,41 @@
 [![CI](https://github.com/neandertech/jsonrpclib/actions/workflows/ci.yml/badge.svg)](https://github.com/neandertech/jsonrpclib/actions/workflows/ci.yml)
 
+[![jsonrpclib-fs2 Scala version support](https://index.scala-lang.org/neandertech/jsonrpclib/jsonrpclib-fs2/latest-by-scala-version.svg?platform=jvm](https://index.scala-lang.org/neandertech/jsonrpclib/jsonrpclib-fs2)
+
+[![jsonrpclib-fs2 Scala version support](https://index.scala-lang.org/neandertech/jsonrpclib/jsonrpclib-fs2/latest-by-scala-version.svg?platform=sjs1](https://index.scala-lang.org/neandertech/jsonrpclib/jsonrpclib-fs2)
+
+
 # jsonrpclib
 
-This is a cross-platform, cross-scala-version [jsonrpc](https://www.jsonrpc.org/) library that provides construct for bidirectional communication using
-the jsonrpc protocol.
+This is a cross-platform, cross-scala-version library that provides construct for bidirectional communication using the [jsonrpc](https://www.jsonrpc.org/) protocol. It is built on top of [fs2](https://fs2.io/#/) and [jsoniter-scala](https://github.com/plokhotnyuk/jsoniter-scala)
 
-This library does not enforce any transport, and works as long as you can provide input/output byte streams.
+This library does not enforce any transport, and can work on top of stdin/stdout or other channels.
 
+## Installation
 
-## Dev Notes
+The dependencies below are following [cross-platform semantics](http://youforgotapercentagesignoracolon.com/).
+Adapt according to your needs
 
-### Scala-native
+### SBT
 
-See
-* https://github.com/scala-native/scala-native/blob/63d07093f6d0a6e9de28cd8f9fb6bc1d6596c6ec/test-interface/src/main/scala/scala/scalanative/testinterface/NativeRPC.scala
+```scala
+libraryDependencies += "tech.neander" %%% "jsonrpclib-fs2" % version
+```
 
+### Mill
 
-### Scala-js
+```scala
+override def ivyDeps = super.ivyDeps() ++ Agg(ivy"tech.neander::jsonrpclib-fs2::$version")
+```
 
-See
-* https://github.com/scala-js/scala-js-js-envs/blob/main/nodejs-env/src/main/scala/org/scalajs/jsenv/nodejs/ComSupport.scala#L245
-* https://github.com/scala-js/scala-js/blob/0708917912938714d52be1426364f78a3d1fd269/test-bridge/src/main/scala/org/scalajs/testing/bridge/JSRPC.scala
+### Scala-cli
+
+```scala
+//> using lib "tech.neander::jsonrpclib-fs2:<VERSION>"
+```
+
+## Usage
+
+**/!\ Please be aware that this library is in its early days and offers strictly no guarantee with regards to backward compatibility**
+
+See the examples folder

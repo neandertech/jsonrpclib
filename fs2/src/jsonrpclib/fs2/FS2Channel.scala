@@ -19,21 +19,30 @@ import scala.util.Try
 import _root_.fs2.concurrent.SignallingRef
 
 trait FS2Channel[F[_]] extends Channel[F] {
-  def withEndpoint(endpoint: Endpoint[F])(implicit F: Functor[F]): Resource[F, Unit] =
-    Resource.make(mountEndpoint(endpoint))(_ => unmountEndpoint(endpoint.method))
+  def withEndpoint(endpoint: Endpoint[F])(implicit F: Functor[F]): Resource[F, FS2Channel[F]] =
+    Resource.make(mountEndpoint(endpoint))(_ => unmountEndpoint(endpoint.method)).map(_ => this)
 
-  def withEndpoints(endpoint: Endpoint[F], rest: Endpoint[F]*)(implicit F: Monad[F]): Resource[F, Unit] =
-    (endpoint :: rest.toList).traverse_(withEndpoint)
+  def withEndpointStream(endpoint: Endpoint[F])(implicit F: MonadCancelThrow[F]): Stream[F, FS2Channel[F]] =
+    Stream.resource(withEndpoint(endpoint))
+
+  def withEndpoints(endpoint: Endpoint[F], rest: Endpoint[F]*)(implicit F: Monad[F]): Resource[F, FS2Channel[F]] =
+    (endpoint :: rest.toList).traverse_(withEndpoint).as(this)
+
+  def withEndpointStream(endpoint: Endpoint[F], rest: Endpoint[F]*)(implicit
+      F: MonadCancelThrow[F]
+  ): Stream[F, FS2Channel[F]] =
+    Stream.resource(withEndpoints(endpoint, rest: _*))
 
   def open: Resource[F, Unit]
   def openStream: Stream[F, Unit]
+  def openStreamForever: Stream[F, Nothing]
 }
 
 object FS2Channel {
 
   def lspCompliant[F[_]: Concurrent](
       byteStream: Stream[F, Byte],
-      byteSink: Pipe[F, Byte, Nothing],
+      byteSink: Pipe[F, Byte, Unit],
       bufferSize: Int = 512,
       maybeCancelTemplate: Option[CancelTemplate] = None
   ): Stream[F, FS2Channel[F]] = internals.LSP.writeSink(byteSink, bufferSize).flatMap { sink =>
@@ -120,6 +129,7 @@ object FS2Channel {
 
     def open: Resource[F, Unit] = Resource.make[F, Unit](isOpen.set(true))(_ => isOpen.set(false))
     def openStream: Stream[F, Unit] = Stream.resource(open)
+    def openStreamForever: Stream[F, Nothing] = openStream.evalMap(_ => F.never)
 
     protected[fs2] def cancel(callId: CallId): F[Unit] = state.get.map(_.runningCalls.get(callId)).flatMap {
       case None        => F.unit
