@@ -7,11 +7,12 @@ import fs2.io._
 import com.github.plokhotnyuk.jsoniter_scala.core.JsonValueCodec
 import com.github.plokhotnyuk.jsoniter_scala.macros.JsonCodecMaker
 import jsonrpclib.Endpoint
+import cats.syntax.all._
 
 object ServerMain extends IOApp.Simple {
 
   // Reserving a method for cancelation.
-  val cancelTemplate = CancelTemplate.make[CallId]("$/cancel", identity, identity)
+  val cancelEndpoint = CancelTemplate.make[CallId]("$/cancel", identity, identity)
 
   // Creating a datatype that'll serve as a request (and response) of an endpoint
   case class IntWrapper(value: Int)
@@ -29,7 +30,7 @@ object ServerMain extends IOApp.Simple {
     // Using errorln as stdout is used by the RPC channel
     IO.consoleForIO.errorln("Starting server") >>
       FS2Channel
-        .lspCompliant[IO](fs2.io.stdin[IO](bufSize = 512), fs2.io.stdout[IO])
+        .lspCompliant[IO](fs2.io.stdin[IO](bufSize = 512), fs2.io.stdout[IO], cancelTemplate = cancelEndpoint.some)
         .flatMap(_.withEndpointStream(increment)) // mounting an endpoint onto the channel
         .flatMap(_.openStreamForever) // starts the communication
         .compile

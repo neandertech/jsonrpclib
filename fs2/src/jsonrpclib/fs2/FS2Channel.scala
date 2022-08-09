@@ -44,28 +44,28 @@ object FS2Channel {
       byteStream: Stream[F, Byte],
       byteSink: Pipe[F, Byte, Unit],
       bufferSize: Int = 512,
-      maybeCancelTemplate: Option[CancelTemplate] = None
+      cancelTemplate: Option[CancelTemplate] = None
   ): Stream[F, FS2Channel[F]] = internals.LSP.writeSink(byteSink, bufferSize).flatMap { sink =>
-    apply[F](internals.LSP.readStream(byteStream), sink, maybeCancelTemplate)
+    apply[F](internals.LSP.readStream(byteStream), sink, cancelTemplate)
   }
 
   def apply[F[_]: Concurrent](
       payloadStream: Stream[F, Payload],
       payloadSink: Payload => F[Unit],
-      maybeCancelTemplate: Option[CancelTemplate] = None
+      cancelTemplate: Option[CancelTemplate] = None
   ): Stream[F, FS2Channel[F]] = {
     for {
       supervisor <- Stream.resource(Supervisor[F])
       ref <- Ref[F].of(State[F](Map.empty, Map.empty, Map.empty, 0)).toStream
       isOpen <- SignallingRef[F].of(false).toStream
       awaitingSink = isOpen.waitUntil(identity) >> payloadSink(_: Payload)
-      impl = new Impl(awaitingSink, ref, isOpen, supervisor, maybeCancelTemplate)
+      impl = new Impl(awaitingSink, ref, isOpen, supervisor, cancelTemplate)
 
       // Creating a bespoke endpoint to receive cancelation requests
-      maybeCancelEndpoint: Option[Endpoint[F]] = maybeCancelTemplate.map { cancelTemplate =>
-        implicit val codec: Codec[cancelTemplate.C] = cancelTemplate.codec
-        Endpoint[F](cancelTemplate.method).notification[cancelTemplate.C] { request =>
-          val callId = cancelTemplate.toCallId(request)
+      maybeCancelEndpoint: Option[Endpoint[F]] = cancelTemplate.map { ct =>
+        implicit val codec: Codec[ct.C] = ct.codec
+        Endpoint[F](ct.method).notification[ct.C] { request =>
+          val callId = ct.toCallId(request)
           impl.cancel(callId)
         }
       }
@@ -148,6 +148,7 @@ object FS2Channel {
     protected def reportError(params: Option[Payload], error: ProtocolError, method: String): F[Unit] = ???
     protected def getEndpoint(method: String): F[Option[Endpoint[F]]] = state.get.map(_.endpoints.get(method))
     protected def sendMessage(message: Message): F[Unit] = sink(Codec.encode(message))
+
     protected def nextCallId(): F[CallId] = state.modify(_.nextCallId)
     protected def createPromise[A](callId: CallId): F[(Try[A] => F[Unit], () => F[A])] = Deferred[F, Try[A]].map {
       promise =>
