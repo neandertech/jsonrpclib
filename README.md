@@ -1,8 +1,8 @@
 [![CI](https://github.com/neandertech/jsonrpclib/actions/workflows/ci.yml/badge.svg)](https://github.com/neandertech/jsonrpclib/actions/workflows/ci.yml)
 
-[![jsonrpclib-fs2 Scala version support](https://index.scala-lang.org/neandertech/jsonrpclib/jsonrpclib-fs2/latest-by-scala-version.svg?platform=jvm](https://index.scala-lang.org/neandertech/jsonrpclib/jsonrpclib-fs2)
+[![jsonrpclib-fs2 Scala version support](https://index.scala-lang.org/neandertech/jsonrpclib/jsonrpclib-fs2/latest-by-scala-version.svg?platform=jvm)](https://index.scala-lang.org/neandertech/jsonrpclib/jsonrpclib-fs2)
 
-[![jsonrpclib-fs2 Scala version support](https://index.scala-lang.org/neandertech/jsonrpclib/jsonrpclib-fs2/latest-by-scala-version.svg?platform=sjs1](https://index.scala-lang.org/neandertech/jsonrpclib/jsonrpclib-fs2)
+[![jsonrpclib-fs2 Scala version support](https://index.scala-lang.org/neandertech/jsonrpclib/jsonrpclib-fs2/latest-by-scala-version.svg?platform=sjs1)](https://index.scala-lang.org/neandertech/jsonrpclib/jsonrpclib-fs2)
 
 
 # jsonrpclib
