@@ -29,10 +29,14 @@ object ServerMain extends IOApp.Simple {
   def run: IO[Unit] = {
     // Using errorln as stdout is used by the RPC channel
     IO.consoleForIO.errorln("Starting server") >>
-      FS2Channel
-        .lspCompliant[IO](fs2.io.stdin[IO](bufSize = 512), fs2.io.stdout[IO], cancelTemplate = cancelEndpoint.some)
+      FS2Channel[IO](cancelTemplate = Some(cancelEndpoint))
         .flatMap(_.withEndpointStream(increment)) // mounting an endpoint onto the channel
-        .flatMap(_.openStreamForever) // starts the communication
+        .flatMap(channel =>
+          fs2.Stream
+            .eval(IO.never) // running the server forever
+            .concurrently(stdin[IO](512).through(lsp.decodePayloads).through(channel.input))
+            .concurrently(channel.output.through(lsp.encodePayloads).through(stdout[IO]))
+        )
         .compile
         .drain
         .guarantee(IO.consoleForIO.errorln("Terminating server"))
