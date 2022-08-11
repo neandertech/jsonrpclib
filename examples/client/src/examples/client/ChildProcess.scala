@@ -36,10 +36,12 @@ object ChildProcess {
         writeOutputStreamFlushingChunks[F](Sync[F].interruptible(p.getOutputStream()))
 
       def stdout: fs2.Stream[F, Byte] = fs2.io
-        .readInputStream[F](Sync[F].interruptible(p.getInputStream()), chunkSize = readBufferSize).translate(onGlobal)
+        .readInputStream[F](Sync[F].interruptible(p.getInputStream()), chunkSize = readBufferSize)
+        .translate(onGlobal)
 
       def stderr: fs2.Stream[F, Byte] = fs2.io
-        .readInputStream[F](Sync[F].blocking(p.getErrorStream()), chunkSize = readBufferSize).translate(onGlobal)
+        .readInputStream[F](Sync[F].blocking(p.getErrorStream()), chunkSize = readBufferSize)
+        .translate(onGlobal)
         // Avoids broken pipe - we cut off when the program ends.
         // Users can decide what to do with the error logs using the exitCode value
         .interruptWhen(done.void.attempt)
