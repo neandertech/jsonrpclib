@@ -1,3 +1,5 @@
+import mill.define.Target
+import mill.util.Jvm
 import $ivy.`com.lihaoyi::mill-contrib-bloop:$MILL_VERSION`
 import $ivy.`io.github.davidgregory084::mill-tpolecat::0.3.1`
 import $ivy.`de.tototec::de.tobiasroeser.mill.vcs.version::0.1.4`
@@ -20,6 +22,7 @@ object versions {
   val scalaNativeVersion = "0.4.4"
   val munitVersion = "0.7.29"
   val munitNativeVersion = "1.0.0-M6"
+  val fs2 = "3.2.11"
 
   val scala213 = "2.13"
   val scala212 = "2.12"
@@ -59,7 +62,7 @@ object fs2 extends RPCCrossPlatformModule { cross =>
 
   override def crossPlatformModuleDeps = Seq(core)
   def crossPlatformIvyDeps: T[Agg[Dep]] = Agg(
-    ivy"co.fs2::fs2-core::3.2.8"
+    ivy"co.fs2::fs2-core::${versions.fs2}"
   )
 
   object jvm extends mill.Cross[JvmModule](scala213, scala3)
@@ -70,6 +73,26 @@ object fs2 extends RPCCrossPlatformModule { cross =>
   object js extends mill.Cross[JsModule](scala213, scala3)
   class JsModule(cv: String) extends cross.JS(cv) {
     object test extends WeaverTests
+  }
+
+}
+
+object examples extends mill.define.Module {
+
+  object server extends ScalaModule {
+    def ivyDeps = Agg(ivy"co.fs2::fs2-io:${versions.fs2}")
+    def moduleDeps = Seq(fs2.jvm(versions.scala213))
+    def scalaVersion = versions.scala213Version
+  }
+
+  object client extends ScalaModule {
+    def ivyDeps = Agg(ivy"co.fs2::fs2-io:${versions.fs2}")
+    def moduleDeps = Seq(fs2.jvm(versions.scala213))
+    def scalaVersion = versions.scala213Version
+    def forkEnv: Target[Map[String, String]] = T {
+      val assembledServer = server.assembly()
+      super.forkEnv() ++ Map("SERVER_JAR" -> assembledServer.path.toString())
+    }
   }
 
 }

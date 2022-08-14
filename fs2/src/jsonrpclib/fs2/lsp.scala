@@ -1,33 +1,26 @@
-package jsonrpclib.fs2.internals
+package jsonrpclib.fs2
 
 import cats.MonadThrow
-import cats.effect.Concurrent
-import cats.effect.std.Queue
 import cats.implicits._
 import fs2.Chunk
 import fs2.Stream
+import fs2.Pipe
 import jsonrpclib.Payload
 
 import java.nio.charset.Charset
 import java.nio.charset.StandardCharsets
 
-object LSP {
+object lsp {
 
-  def writeSink[F[_]: Concurrent](
-      writePipe: fs2.Pipe[F, Byte, Nothing],
-      bufferSize: Int
-  ): Stream[F, Payload => F[Unit]] =
-    Stream.eval(Queue.bounded[F, Payload](bufferSize)).flatMap { queue =>
-      val payloads = fs2.Stream.fromQueueUnterminated(queue, bufferSize)
-      Stream(queue.offer(_)).concurrently(payloads.map(writeChunk).flatMap(Stream.chunk(_)).through(writePipe))
-    }
+  def encodePayloads[F[_]]: Pipe[F, Payload, Byte] =
+    (_: Stream[F, Payload]).map(writeChunk).flatMap(Stream.chunk(_))
 
   /** Split a stream of bytes into payloads by extracting each frame based on information contained in the headers.
     *
     * See https://microsoft.github.io/language-server-protocol/specifications/lsp/3.17/specification/#contentPart
     */
-  def readStream[F[_]: MonadThrow](bytes: Stream[F, Byte]): Stream[F, Payload] =
-    bytes
+  def decodePayloads[F[_]: MonadThrow]: Pipe[F, Byte, Payload] =
+    (_: Stream[F, Byte])
       .scanChunks(ScanState.starting) { case (state, chunk) =>
         val (ns, maybeResult) = loop(state.concatChunk(chunk))
         (ns, Chunk(maybeResult))

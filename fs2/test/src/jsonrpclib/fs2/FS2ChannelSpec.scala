@@ -1,8 +1,6 @@
 package jsonrpclib.fs2
 
 import cats.effect.IO
-import cats.effect.implicits._
-import cats.effect.std.Queue
 import cats.syntax.all._
 import com.github.plokhotnyuk.jsoniter_scala.core.JsonValueCodec
 import com.github.plokhotnyuk.jsoniter_scala.macros.JsonCodecMaker
@@ -28,18 +26,28 @@ object FS2ChannelSpec extends SimpleIOSuite {
   def testRes(name: TestName)(run: Stream[IO, Expectations]): Unit =
     test(name)(run.compile.lastOrError.timeout(10.second))
 
+  type ClientSideChannel = FS2Channel[IO]
+  def setup(endpoints: Endpoint[IO]*) = setupAux(endpoints, None)
+  def setup(cancelTemplate: CancelTemplate, endpoints: Endpoint[IO]*) = setupAux(endpoints, Some(cancelTemplate))
+  def setupAux(endpoints: Seq[Endpoint[IO]], cancelTemplate: Option[CancelTemplate]): Stream[IO, ClientSideChannel] = {
+    for {
+      serverSideChannel <- FS2Channel[IO](cancelTemplate = cancelTemplate)
+      clientSideChannel <- FS2Channel[IO](cancelTemplate = cancelTemplate)
+      _ <- serverSideChannel.withEndpointsStream(endpoints)
+      _ <- Stream(())
+        .concurrently(clientSideChannel.output.through(serverSideChannel.input))
+        .concurrently(serverSideChannel.output.through(clientSideChannel.input))
+    } yield {
+      clientSideChannel
+    }
+  }
+
   testRes("Round trip") {
     val endpoint: Endpoint[IO] = Endpoint[IO]("inc").simple((int: IntWrapper) => IO(IntWrapper(int.int + 1)))
 
     for {
-      stdout <- Queue.bounded[IO, Payload](10).toStream
-      stdin <- Queue.bounded[IO, Payload](10).toStream
-      serverSideChannel <- FS2Channel[IO](Stream.fromQueueUnterminated(stdin), stdout.offer)
-      clientSideChannel <- FS2Channel[IO](Stream.fromQueueUnterminated(stdout), stdin.offer)
-      _ <- serverSideChannel.withEndpoint(endpoint).asStream
+      clientSideChannel <- setup(endpoint)
       remoteFunction = clientSideChannel.simpleStub[IntWrapper, IntWrapper]("inc")
-      _ <- serverSideChannel.open.asStream
-      _ <- clientSideChannel.open.asStream
       result <- remoteFunction(IntWrapper(1)).toStream
     } yield {
       expect.same(result, IntWrapper(2))
@@ -49,13 +57,8 @@ object FS2ChannelSpec extends SimpleIOSuite {
   testRes("Endpoint not mounted") {
 
     for {
-      stdout <- Queue.bounded[IO, Payload](10).toStream
-      stdin <- Queue.bounded[IO, Payload](10).toStream
-      serverSideChannel <- FS2Channel[IO](Stream.fromQueueUnterminated(stdin), stdout.offer)
-      clientSideChannel <- FS2Channel[IO](Stream.fromQueueUnterminated(stdout), stdin.offer)
+      clientSideChannel <- setup()
       remoteFunction = clientSideChannel.simpleStub[IntWrapper, IntWrapper]("inc")
-      _ <- serverSideChannel.open.asStream
-      _ <- clientSideChannel.open.asStream
       result <- remoteFunction(IntWrapper(1)).attempt.toStream
     } yield {
       expect.same(result, Left(ErrorPayload(-32601, "Method inc not found", None)))
@@ -70,14 +73,8 @@ object FS2ChannelSpec extends SimpleIOSuite {
       }
 
     for {
-      stdout <- Queue.bounded[IO, Payload](10).toStream
-      stdin <- Queue.bounded[IO, Payload](10).toStream
-      serverSideChannel <- FS2Channel[IO](Stream.fromQueueUnterminated(stdin), payload => stdout.offer(payload))
-      clientSideChannel <- FS2Channel[IO](Stream.fromQueueUnterminated(stdout), payload => stdin.offer(payload))
-      _ <- serverSideChannel.withEndpoint(endpoint).asStream
+      clientSideChannel <- setup(endpoint)
       remoteFunction = clientSideChannel.simpleStub[IntWrapper, IntWrapper]("inc")
-      _ <- serverSideChannel.open.asStream
-      _ <- clientSideChannel.open.asStream
       timedResults <- (1 to 10).toList.map(IntWrapper(_)).parTraverse(remoteFunction).timed.toStream
     } yield {
       val (time, results) = timedResults
@@ -95,14 +92,8 @@ object FS2ChannelSpec extends SimpleIOSuite {
         IO.never.as(int).onCancel(canceledPromise.complete(int).void)
       )
 
-      stdin <- Queue.bounded[IO, Payload](10).toStream
-      stdout <- Queue.bounded[IO, Payload](10).toStream
-      serverSideChannel <- FS2Channel[IO](Stream.fromQueueUnterminated(stdin), stdout.offer, Some(cancelTemplate))
-      clientSideChannel <- FS2Channel[IO](Stream.fromQueueUnterminated(stdout), stdin.offer, Some(cancelTemplate))
-      _ <- serverSideChannel.withEndpoint(endpoint).asStream
+      clientSideChannel <- setup(cancelTemplate, endpoint)
       remoteFunction = clientSideChannel.simpleStub[IntWrapper, IntWrapper]("never")
-      _ <- serverSideChannel.open.asStream
-      _ <- clientSideChannel.open.asStream
       // Timeing-out client-call to verify cancelation progagates to server
       _ <- IO.race(remoteFunction(IntWrapper(23)), IO.sleep(1.second)).toStream
       result <- canceledPromise.get.toStream
