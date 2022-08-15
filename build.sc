@@ -112,7 +112,7 @@ trait RPCCrossPlatformModule extends Module { shared =>
     override def platformLabel: String = "jvm"
 
     trait WeaverTests extends Tests {
-      def ivyDeps = super.ivyDeps() ++ Agg(ivy"com.disneystreaming::weaver-cats:0.7.13")
+      def ivyDeps = super.ivyDeps() ++ Agg(ivy"com.disneystreaming::weaver-cats:0.7.15")
       def testFramework = "weaver.framework.CatsEffect"
     }
 
@@ -138,7 +138,7 @@ trait RPCCrossPlatformModule extends Module { shared =>
     override def skipIdea = true
 
     trait WeaverTests extends Tests {
-      def ivyDeps = super.ivyDeps() ++ Agg(ivy"com.disneystreaming::weaver-cats::0.7.13")
+      def ivyDeps = super.ivyDeps() ++ Agg(ivy"com.disneystreaming::weaver-cats::0.7.15")
       def testFramework = "weaver.framework.CatsEffect"
     }
 
