@@ -60,15 +60,15 @@ private object Utils {
     implicit val jcodec: JsonValueCodec[IntWrapper] = JsonCodecMaker.make
   }
 
-  val increment = Endpoint[Future]("increment").simple { in: IntWrapper =>
+  val increment = Endpoint[Future]("increment").simple { (in: IntWrapper) =>
     Future(in.copy(value = in.value + 1))
   }
 
-  val decrement = Endpoint[Future]("decrement").simple { in: IntWrapper =>
+  val decrement = Endpoint[Future]("decrement").simple { (in: IntWrapper) =>
     Future(in.copy(value = in.value - 1))
   }
 
-  val alwaysFail = Endpoint[Future]("failure").simple { in: IntWrapper =>
+  val alwaysFail = Endpoint[Future]("failure").simple { (in: IntWrapper) =>
     Future.failed[IntWrapper](new Exception("oh no:("))
   }
 
