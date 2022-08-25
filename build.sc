@@ -17,7 +17,7 @@ import de.tobiasroeser.mill.vcs.version.VcsVersion
 object versions {
   val scala212Version = "2.12.16"
   val scala213Version = "2.13.8"
-  val scala3Version = "3.1.2"
+  val scala3Version = "3.1.3"
   val scalaJSVersion = "1.10.1"
   val scalaNativeVersion = "0.4.5"
   val munitVersion = "0.7.29"

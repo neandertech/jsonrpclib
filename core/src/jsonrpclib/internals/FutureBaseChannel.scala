@@ -7,6 +7,8 @@ import scala.concurrent.ExecutionContext
 import scala.concurrent.Future
 import scala.concurrent.Promise
 import scala.util.Try
+import java.util.concurrent.ConcurrentMap
+import scala.jdk.CollectionConverters.*
 
 abstract class FutureBasedChannel(endpoints: List[Endpoint[Future]])(implicit ec: ExecutionContext)
     extends MessageDispatcher[Future] {
@@ -18,24 +20,30 @@ abstract class FutureBasedChannel(endpoints: List[Endpoint[Future]])(implicit ec
     (fulfill, future)
   }
 
+  override def mountEndpoint(endpoint: Endpoint[Future]): Future[Unit] =
+    Future { endpointsMap.put(endpoint.method, endpoint); () }
+
+  override def unmountEndpoint(method: String): Future[Unit] = Future { endpointsMap.remove(method); () }
+
   protected def storePendingCall(callId: CallId, handle: OutputMessage => Future[Unit]): Future[Unit] =
     Future.successful { val _ = pending.put(callId, handle) }
   protected def removePendingCall(callId: CallId): Future[Option[OutputMessage => Future[Unit]]] =
     Future.successful { Option(pending.remove(callId)) }
   protected def getEndpoint(method: String): Future[Option[Endpoint[Future]]] =
-    Future.successful(endpointsMap.get(method))
+    Future.successful(Option(endpointsMap.get(method)))
   protected def sendMessage(message: Message): Future[Unit] = {
     sendPayload(Codec.encode(message)).map(_ => ())
   }
   protected def nextCallId(): Future[CallId] = Future.successful(CallId.NumberId(nextID.incrementAndGet()))
 
-  private[this] val endpointsMap: Map[String, Endpoint[Future]] = endpoints.map(ep => ep.method -> ep).toMap
+  private[this] val endpointsMap: ConcurrentMap[String, Endpoint[Future]] =
+    new java.util.concurrent.ConcurrentHashMap(endpoints.map(ep => ep.method -> ep).toMap.asJava)
   private[this] val pending = new java.util.concurrent.ConcurrentHashMap[CallId, OutputMessage => Future[Unit]]
   private[this] val nextID = new AtomicLong(0L)
   // @volatile
   // private[this] var closeReason: Throwable = _
 
-  def sendPayload(msg: Payload): Future[Unit] = ???
+  def sendPayload(msg: Payload): Future[Unit]
   def reportError(params: Option[Payload], error: ProtocolError, method: String): Future[Unit] = ???
 
 }
