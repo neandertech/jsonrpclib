@@ -2,7 +2,7 @@ import mill.define.Target
 import mill.util.Jvm
 import $ivy.`com.lihaoyi::mill-contrib-bloop:$MILL_VERSION`
 import $ivy.`io.github.davidgregory084::mill-tpolecat::0.3.1`
-import $ivy.`de.tototec::de.tobiasroeser.mill.vcs.version::0.1.4`
+import $ivy.`de.tototec::de.tobiasroeser.mill.vcs.version::0.2.0`
 
 import os.Path
 import mill._
@@ -275,9 +275,8 @@ trait JsonRPCModule extends ScalaModule with PublishModule with scalafmt.Scalafm
   def fmt() = T.command(reformat())
   def refreshedEnv = T.input(T.ctx().env)
   def publishVersion = T {
-    if (refreshedEnv().contains("CI")) {
-      VcsVersion.vcsState().format().drop("v".length)
-    } else "dev"
+    if (refreshedEnv().contains("CI")) VcsVersion.vcsState().format()
+    else "dev"
   }
   override def scalacOptions = T {
     super.scalacOptions() ++ Tpolecat.scalacOptionsFor(scalaVersion())
