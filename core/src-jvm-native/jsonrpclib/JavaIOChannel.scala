@@ -29,7 +29,7 @@ class JavaIOChannel(in: DataInputStream, out: DataOutputStream, endpoints: List[
     val finish = Promise[Unit]()
     try {
       var fut = finish.future
-      
+
       @tailrec
       def loop(): Unit = {
         internals.LSPHeaders.readNext(in) match {
