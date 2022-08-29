@@ -1,6 +1,7 @@
 package jsonrpclib
 
 import com.github.plokhotnyuk.jsoniter_scala.core._
+import scala.annotation.switch
 
 sealed trait CallId
 object CallId {
@@ -10,17 +11,13 @@ object CallId {
 
   implicit val callIdRW: JsonValueCodec[CallId] = new JsonValueCodec[CallId] {
     def decodeValue(in: JsonReader, default: CallId): CallId = {
-      try {
-        NumberId(in.readLong())
-      } catch {
-        case _: JsonReaderException =>
-          in.rollbackToken()
-          try {
-            StringId(in.readString(null))
-          } catch {
-            case _: JsonReaderException =>
-              in.readNullOrError(default, "expected null")
-          }
+      val nt = in.nextToken()
+
+      (nt: @switch) match {
+        case 'n' => in.readNullOrError(default, "expected null")
+        case '"' => in.rollbackToken(); StringId(in.readString(null))
+        case _   => in.rollbackToken(); NumberId(in.readLong())
+
       }
     }
 
