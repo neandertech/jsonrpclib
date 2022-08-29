@@ -1,7 +1,6 @@
 package jsonrpclib
 
 import com.github.plokhotnyuk.jsoniter_scala.core._
-import scala.util.Try
 
 sealed trait CallId
 object CallId {
@@ -10,12 +9,20 @@ object CallId {
   case object NullId extends CallId
 
   implicit val callIdRW: JsonValueCodec[CallId] = new JsonValueCodec[CallId] {
-    def decodeValue(in: JsonReader, default: CallId): CallId =
-      Try(in.readLong())
-        .map(NumberId(_): CallId)
-        .orElse(Try(in.readString(null)).map(StringId(_): CallId))
-        .orElse(scala.util.Success(default))
-        .get
+    def decodeValue(in: JsonReader, default: CallId): CallId = {
+      try {
+        NumberId(in.readLong())
+      } catch {
+        case _: JsonReaderException =>
+          in.rollbackToken()
+          try {
+            StringId(in.readString(null))
+          } catch {
+            case _: JsonReaderException =>
+              in.readNullOrError(default, "expected null")
+          }
+      }
+    }
 
     def encodeValue(x: CallId, out: JsonWriter): Unit = x match {
       case NumberId(long)   => out.writeVal(long)
