@@ -2,7 +2,7 @@ import mill.define.Target
 import mill.util.Jvm
 import $ivy.`com.lihaoyi::mill-contrib-bloop:$MILL_VERSION`
 import $ivy.`io.github.davidgregory084::mill-tpolecat::0.3.1`
-import $ivy.`de.tototec::de.tobiasroeser.mill.vcs.version::0.2.0`
+import $ivy.`io.chris-kipp::mill-ci-release::0.1.0`
 
 import os.Path
 import mill._
@@ -12,7 +12,7 @@ import scalajslib._
 import scalanativelib._
 import mill.scalajslib.api._
 import io.github.davidgregory084._
-import de.tobiasroeser.mill.vcs.version.VcsVersion
+import io.kipp.mill.ci.release.CiReleaseModule
 
 object versions {
   val scala212Version = "2.12.16"
@@ -270,12 +270,12 @@ trait RPCCrossPlatformModule extends Module { shared =>
   }
 }
 
-trait JsonRPCModule extends ScalaModule with PublishModule with scalafmt.ScalafmtModule {
+trait JsonRPCModule extends ScalaModule with CiReleaseModule with scalafmt.ScalafmtModule {
   def scalafmt() = T.command(reformat())
   def fmt() = T.command(reformat())
   def refreshedEnv = T.input(T.ctx().env)
   def publishVersion = T {
-    if (refreshedEnv().contains("CI")) VcsVersion.vcsState().format()
+    if (refreshedEnv().contains("CI")) super.publishVersion()
     else "dev"
   }
   override def scalacOptions = T {
@@ -294,4 +294,8 @@ trait JsonRPCModule extends ScalaModule with PublishModule with scalafmt.Scalafm
       Developer("Baccata", "Olivier Mélois", "https://github.com/baccata")
     )
   )
+
+  override def sonatypeUri = "https://s01.oss.sonatype.org/service/local"
+  override def sonatypeSnapshotUri =
+    "https://s01.oss.sonatype.org/content/repositories/snapshots"
 }
