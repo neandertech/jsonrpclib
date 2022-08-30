@@ -7,11 +7,12 @@ import com.github.plokhotnyuk.jsoniter_scala.core._
 import com.github.plokhotnyuk.jsoniter_scala.macros.JsonCodecMaker
 import scala.concurrent.Future
 
-import scala.concurrent.ExecutionContext.Implicits.global
 import java.io.ByteArrayOutputStream
 import java.io.DataInputStream
 import java.io.DataOutputStream
 import java.io.InputStream
+
+import scala.concurrent.ExecutionContext.Implicits.global
 
 class JavaIOChannelSpec() extends FunSuite {
 
@@ -79,7 +80,6 @@ private object Utils {
 
     val ch = new JavaIOChannel(new DataInputStream(buf), new DataOutputStream(out), endpoint.toList)
 
-    // Await.result(ch.start(), 5.seconds)
     ch.start().map { _ =>
       val bytes = out.toByteArray()
       readBack(new ByteArrayInputStream(bytes)).map(rm => rm.id -> rm).toMap
