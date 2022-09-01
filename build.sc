@@ -19,7 +19,7 @@ object versions {
   val scala213Version = "2.13.8"
   val scala3Version = "3.1.2"
   val scalaJSVersion = "1.10.1"
-  val scalaNativeVersion = "0.4.6"
+  val scalaNativeVersion = "0.4.7"
   val munitVersion = "0.7.29"
   val munitNativeVersion = "1.0.0-M6"
   val fs2 = "3.2.12"
