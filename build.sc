@@ -39,7 +39,7 @@ import versions._
 object core extends RPCCrossPlatformModule { cross =>
 
   def crossPlatformIvyDeps: T[Agg[Dep]] = Agg(
-    ivy"com.github.plokhotnyuk.jsoniter-scala::jsoniter-scala-macros::2.17.0"
+    ivy"com.github.plokhotnyuk.jsoniter-scala::jsoniter-scala-macros::2.17.2"
   )
 
   object jvm extends mill.Cross[JvmModule](scala213, scala3)
