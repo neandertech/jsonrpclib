@@ -22,7 +22,8 @@ object versions {
   val scalaNativeVersion = "0.4.7"
   val munitVersion = "0.7.29"
   val munitNativeVersion = "1.0.0-M6"
-  val fs2 = "3.2.13"
+  val fs2 = "3.2.14-75-7902cbf"
+  val weaver = "0.7.15+40-63a2a6dd+20220914-1514"
 
   val scala213 = "2.13"
   val scala212 = "2.12"
@@ -75,6 +76,11 @@ object fs2 extends RPCCrossPlatformModule { cross =>
     object test extends WeaverTests
   }
 
+  object native extends mill.Cross[NativeModule](scala213, scala3)
+  class NativeModule(cv: String) extends cross.Native(cv) {
+    object test extends WeaverTests
+  }
+
 }
 
 object examples extends mill.define.Module {
@@ -86,8 +92,8 @@ object examples extends mill.define.Module {
   }
 
   object client extends ScalaModule {
-    def ivyDeps = Agg(ivy"co.fs2::fs2-io:${versions.fs2}")
-    def moduleDeps = Seq(fs2.jvm(versions.scala213))
+    def ivyDeps = Agg(ivy"co.fs2::fs2-io::${versions.fs2}")
+    def moduleDeps = Seq(fs2.native(versions.scala213))
     def scalaVersion = versions.scala213Version
     def forkEnv: Target[Map[String, String]] = T {
       val assembledServer = server.assembly()
@@ -112,7 +118,7 @@ trait RPCCrossPlatformModule extends Module { shared =>
     override def platformLabel: String = "jvm"
 
     trait WeaverTests extends Tests {
-      def ivyDeps = super.ivyDeps() ++ Agg(ivy"com.disneystreaming::weaver-cats:0.7.15")
+      def ivyDeps = super.ivyDeps() ++ Agg(ivy"com.disneystreaming::weaver-cats:${versions.weaver}")
       def testFramework = "weaver.framework.CatsEffect"
     }
 
@@ -172,6 +178,11 @@ trait RPCCrossPlatformModule extends Module { shared =>
     }
     override def skipIdea = true
     override def skipBloop = true
+
+    trait WeaverTests extends Tests {
+      def ivyDeps = super.ivyDeps() ++ Agg(ivy"com.disneystreaming::weaver-cats::${versions.weaver}")
+      def testFramework = "weaver.framework.CatsEffect"
+    }
 
     trait MunitTests extends Tests with TestModule.Munit {
       def ivyDeps = super.ivyDeps() ++ Agg(ivy"org.scalameta::munit::$munitNativeVersion")
