@@ -23,7 +23,7 @@ object versions {
   val munitVersion = "0.7.29"
   val munitNativeVersion = "1.0.0-M6"
   val fs2 = "3.3.0"
-  val weaver = "0.7.15+59-853de010-SNAPSHOT"
+  val weaver = "0.8.0"
 
   val scala213 = "2.13"
   val scala212 = "2.12"
@@ -118,10 +118,6 @@ trait RPCCrossPlatformModule extends Module { shared =>
     override def platformLabel: String = "jvm"
 
     trait WeaverTests extends Tests {
-      import coursier.MavenRepository
-      override def repositoriesTask = T.task {
-        super.repositoriesTask() :+ MavenRepository(s"https://s01.oss.sonatype.org/content/repositories/snapshots")
-      }
       def ivyDeps = super.ivyDeps() ++ Agg(ivy"com.disneystreaming::weaver-cats::$weaver")
       def testFramework = "weaver.framework.CatsEffect"
     }
@@ -148,10 +144,6 @@ trait RPCCrossPlatformModule extends Module { shared =>
     override def skipIdea = true
 
     trait WeaverTests extends Tests {
-      import coursier.MavenRepository
-      override def repositoriesTask = T.task {
-        super.repositoriesTask() :+ MavenRepository(s"https://s01.oss.sonatype.org/content/repositories/snapshots")
-      }
       def ivyDeps = super.ivyDeps() ++ Agg(ivy"com.disneystreaming::weaver-cats::$weaver")
       def testFramework = "weaver.framework.CatsEffect"
     }
@@ -188,10 +180,6 @@ trait RPCCrossPlatformModule extends Module { shared =>
     override def skipBloop = true
 
     trait WeaverTests extends Tests {
-      import coursier.MavenRepository
-      override def repositoriesTask = T.task {
-        super.repositoriesTask() :+ MavenRepository(s"https://s01.oss.sonatype.org/content/repositories/snapshots")
-      }
       def ivyDeps = super.ivyDeps() ++ Agg(ivy"com.disneystreaming::weaver-cats::$weaver")
       def testFramework = "weaver.framework.CatsEffect"
     }
