@@ -22,7 +22,8 @@ object versions {
   val scalaNativeVersion = "0.4.7"
   val munitVersion = "0.7.29"
   val munitNativeVersion = "1.0.0-M6"
-  val fs2 = "3.2.13"
+  val fs2 = "3.3.0"
+  val weaver = "0.8.0"
 
   val scala213 = "2.13"
   val scala212 = "2.12"
@@ -75,6 +76,11 @@ object fs2 extends RPCCrossPlatformModule { cross =>
     object test extends WeaverTests
   }
 
+  object native extends mill.Cross[NativeModule](scala213, scala3)
+  class NativeModule(cv: String) extends cross.Native(cv) {
+    object test extends WeaverTests
+  }
+
 }
 
 object examples extends mill.define.Module {
@@ -112,7 +118,7 @@ trait RPCCrossPlatformModule extends Module { shared =>
     override def platformLabel: String = "jvm"
 
     trait WeaverTests extends Tests {
-      def ivyDeps = super.ivyDeps() ++ Agg(ivy"com.disneystreaming::weaver-cats:0.7.15")
+      def ivyDeps = super.ivyDeps() ++ Agg(ivy"com.disneystreaming::weaver-cats::$weaver")
       def testFramework = "weaver.framework.CatsEffect"
     }
 
@@ -138,7 +144,7 @@ trait RPCCrossPlatformModule extends Module { shared =>
     override def skipIdea = true
 
     trait WeaverTests extends Tests {
-      def ivyDeps = super.ivyDeps() ++ Agg(ivy"com.disneystreaming::weaver-cats::0.7.15")
+      def ivyDeps = super.ivyDeps() ++ Agg(ivy"com.disneystreaming::weaver-cats::$weaver")
       def testFramework = "weaver.framework.CatsEffect"
     }
 
@@ -172,6 +178,11 @@ trait RPCCrossPlatformModule extends Module { shared =>
     }
     override def skipIdea = true
     override def skipBloop = true
+
+    trait WeaverTests extends Tests {
+      def ivyDeps = super.ivyDeps() ++ Agg(ivy"com.disneystreaming::weaver-cats::$weaver")
+      def testFramework = "weaver.framework.CatsEffect"
+    }
 
     trait MunitTests extends Tests with TestModule.Munit {
       def ivyDeps = super.ivyDeps() ++ Agg(ivy"org.scalameta::munit::$munitNativeVersion")
