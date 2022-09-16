@@ -92,8 +92,8 @@ object examples extends mill.define.Module {
   }
 
   object client extends ScalaModule {
-    def ivyDeps = Agg(ivy"co.fs2::fs2-io::${versions.fs2}")
-    def moduleDeps = Seq(fs2.native(versions.scala213))
+    def ivyDeps = Agg(ivy"co.fs2::fs2-io:${versions.fs2}")
+    def moduleDeps = Seq(fs2.jvm(versions.scala213))
     def scalaVersion = versions.scala213Version
     def forkEnv: Target[Map[String, String]] = T {
       val assembledServer = server.assembly()
