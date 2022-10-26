@@ -60,7 +60,7 @@ object lsp {
         Right(
           headers.copy(mimeType = mimeType, charset = Charset.forName(charset))
         )
-      case _ => Left(ParseError(s"Couldn't parse to header: $line"))
+      case _ => Left(ParseError(s"Couldn't parse header: $line"))
     }
 
   private object integer {
