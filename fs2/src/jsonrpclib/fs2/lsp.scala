@@ -56,7 +56,7 @@ object lsp {
     line.trim() match {
       case s"Content-Length: ${integer(length)}" =>
         Right(headers.copy(contentLength = length))
-      case s"Content-type: ${mimeType}; charset=${charset}" =>
+      case s"Content-Type: ${mimeType}; charset=${charset}" =>
         Right(
           headers.copy(mimeType = mimeType, charset = Charset.forName(charset))
         )
