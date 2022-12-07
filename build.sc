@@ -2,7 +2,7 @@ import mill.define.Target
 import mill.util.Jvm
 import $ivy.`com.lihaoyi::mill-contrib-bloop:$MILL_VERSION`
 import $ivy.`io.github.davidgregory084::mill-tpolecat::0.3.1`
-import $ivy.`io.chris-kipp::mill-ci-release::0.1.1`
+import $ivy.`io.chris-kipp::mill-ci-release::0.1.4`
 
 import os.Path
 import mill._
