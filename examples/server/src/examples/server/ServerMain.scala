@@ -34,8 +34,8 @@ object ServerMain extends IOApp.Simple {
         .flatMap(channel =>
           fs2.Stream
             .eval(IO.never) // running the server forever
-            .concurrently(stdin[IO](512).through(lsp.decodePayloads).through(channel.input))
-            .concurrently(channel.output.through(lsp.encodePayloads).through(stdout[IO]))
+            .concurrently(stdin[IO](512).through(lsp.decodeMessages).through(channel.inputOrBounce))
+            .concurrently(channel.output.through(lsp.encodeMessages).through(stdout[IO]))
         )
         .compile
         .drain

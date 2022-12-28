@@ -15,10 +15,10 @@ object Endpoint {
     def apply[In, Err, Out](
         run: In => F[Either[Err, Out]]
     )(implicit inCodec: Codec[In], errCodec: ErrorCodec[Err], outCodec: Codec[Out]): Endpoint[F] =
-      RequestResponseEndpoint(method, (_: Method, in: In) => run(in), inCodec, errCodec, outCodec)
+      RequestResponseEndpoint(method, (_: InputMessage, in: In) => run(in), inCodec, errCodec, outCodec)
 
     def full[In, Err, Out](
-        run: (Method, In) => F[Either[Err, Out]]
+        run: (InputMessage, In) => F[Either[Err, Out]]
     )(implicit inCodec: Codec[In], errCodec: ErrorCodec[Err], outCodec: Codec[Out]): Endpoint[F] =
       RequestResponseEndpoint(method, run, inCodec, errCodec, outCodec)
 
@@ -33,19 +33,22 @@ object Endpoint {
       )
 
     def notification[In](run: In => F[Unit])(implicit inCodec: Codec[In]): Endpoint[F] =
-      NotificationEndpoint(method, (_: Method, in: In) => run(in), inCodec)
+      NotificationEndpoint(method, (_: InputMessage, in: In) => run(in), inCodec)
 
-    def notificationFull[In](run: (Method, In) => F[Unit])(implicit inCodec: Codec[In]): Endpoint[F] =
+    def notificationFull[In](run: (InputMessage, In) => F[Unit])(implicit inCodec: Codec[In]): Endpoint[F] =
       NotificationEndpoint(method, run, inCodec)
 
   }
 
-  final case class NotificationEndpoint[F[_], In](method: Method, run: (Method, In) => F[Unit], inCodec: Codec[In])
-      extends Endpoint[F]
+  final case class NotificationEndpoint[F[_], In](
+      method: MethodPattern,
+      run: (InputMessage, In) => F[Unit],
+      inCodec: Codec[In]
+  ) extends Endpoint[F]
 
   final case class RequestResponseEndpoint[F[_], In, Err, Out](
       method: Method,
-      run: (Method, In) => F[Either[Err, Out]],
+      run: (InputMessage, In) => F[Either[Err, Out]],
       inCodec: Codec[In],
       errCodec: ErrorCodec[Err],
       outCodec: Codec[Out]
