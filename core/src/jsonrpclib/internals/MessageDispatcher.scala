@@ -77,13 +77,13 @@ private[jsonrpclib] abstract class MessageDispatcher[F[_]](implicit F: Monadic[F
     (input, endpoint) match {
       case (InputMessage.NotificationMessage(_, params), ep: NotificationEndpoint[F, in]) =>
         ep.inCodec.decode(params) match {
-          case Right(value) => ep.run(value)
+          case Right(value) => ep.run(input.method, value)
           case Left(value)  => reportError(params, value, ep.method)
         }
       case (InputMessage.RequestMessage(_, callId, params), ep: RequestResponseEndpoint[F, in, err, out]) =>
         ep.inCodec.decode(params) match {
           case Right(value) =>
-            doFlatMap(ep.run(value)) {
+            doFlatMap(ep.run(input.method, value)) {
               case Right(data) =>
                 val responseData = ep.outCodec.encode(data)
                 sendMessage(OutputMessage.ResponseMessage(callId, responseData))

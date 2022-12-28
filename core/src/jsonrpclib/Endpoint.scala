@@ -6,11 +6,19 @@ sealed trait Endpoint[F[_]] {
 
 object Endpoint {
 
-  def apply[F[_]](method: String): PartiallyAppliedEndpoint[F] = new PartiallyAppliedEndpoint[F](method)
+  type MethodPattern = String
+  type Method = String
 
-  class PartiallyAppliedEndpoint[F[_]](method: String) {
+  def apply[F[_]](method: Method): PartiallyAppliedEndpoint[F] = new PartiallyAppliedEndpoint[F](method)
+
+  class PartiallyAppliedEndpoint[F[_]](method: MethodPattern) {
     def apply[In, Err, Out](
         run: In => F[Either[Err, Out]]
+    )(implicit inCodec: Codec[In], errCodec: ErrorCodec[Err], outCodec: Codec[Out]): Endpoint[F] =
+      RequestResponseEndpoint(method, (_: Method, in) => run(in), inCodec, errCodec, outCodec)
+
+    def full[In, Err, Out](
+        run: (Method, In) => F[Either[Err, Out]]
     )(implicit inCodec: Codec[In], errCodec: ErrorCodec[Err], outCodec: Codec[Out]): Endpoint[F] =
       RequestResponseEndpoint(method, run, inCodec, errCodec, outCodec)
 
@@ -25,16 +33,19 @@ object Endpoint {
       )
 
     def notification[In](run: In => F[Unit])(implicit inCodec: Codec[In]): Endpoint[F] =
+      NotificationEndpoint(method, (_: Method, in) => run(in), inCodec)
+
+    def notificationFull[In](run: (Method, In) => F[Unit])(implicit inCodec: Codec[In]): Endpoint[F] =
       NotificationEndpoint(method, run, inCodec)
 
   }
 
-  final case class NotificationEndpoint[F[_], In](method: String, run: In => F[Unit], inCodec: Codec[In])
+  final case class NotificationEndpoint[F[_], In](method: Method, run: (Method, In) => F[Unit], inCodec: Codec[In])
       extends Endpoint[F]
 
   final case class RequestResponseEndpoint[F[_], In, Err, Out](
-      method: String,
-      run: In => F[Either[Err, Out]],
+      method: Method,
+      run: (Method, In) => F[Either[Err, Out]],
       inCodec: Codec[In],
       errCodec: ErrorCodec[Err],
       outCodec: Codec[Out]
