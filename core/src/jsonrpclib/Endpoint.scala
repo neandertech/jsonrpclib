@@ -15,7 +15,7 @@ object Endpoint {
     def apply[In, Err, Out](
         run: In => F[Either[Err, Out]]
     )(implicit inCodec: Codec[In], errCodec: ErrorCodec[Err], outCodec: Codec[Out]): Endpoint[F] =
-      RequestResponseEndpoint(method, (_: Method, in) => run(in), inCodec, errCodec, outCodec)
+      RequestResponseEndpoint(method, (_: Method, in: In) => run(in), inCodec, errCodec, outCodec)
 
     def full[In, Err, Out](
         run: (Method, In) => F[Either[Err, Out]]
@@ -33,7 +33,7 @@ object Endpoint {
       )
 
     def notification[In](run: In => F[Unit])(implicit inCodec: Codec[In]): Endpoint[F] =
-      NotificationEndpoint(method, (_: Method, in) => run(in), inCodec)
+      NotificationEndpoint(method, (_: Method, in: In) => run(in), inCodec)
 
     def notificationFull[In](run: (Method, In) => F[Unit])(implicit inCodec: Codec[In]): Endpoint[F] =
       NotificationEndpoint(method, run, inCodec)
