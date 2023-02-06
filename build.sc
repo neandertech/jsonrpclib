@@ -1,8 +1,8 @@
 import mill.define.Target
 import mill.util.Jvm
 import $ivy.`com.lihaoyi::mill-contrib-bloop:$MILL_VERSION`
-import $ivy.`io.github.davidgregory084::mill-tpolecat::0.3.1`
-import $ivy.`io.chris-kipp::mill-ci-release::0.1.5`
+import $ivy.`io.github.davidgregory084::mill-tpolecat::0.3.2`
+import $ivy.`io.chris-kipp::mill-ci-release::0.1.4`
 
 import os.Path
 import mill._
@@ -16,7 +16,7 @@ import io.kipp.mill.ci.release.CiReleaseModule
 
 object versions {
   val scala212Version = "2.12.16"
-  val scala213Version = "2.13.8"
+  val scala213Version = "2.13.10"
   val scala3Version = "3.1.2"
   val scalaJSVersion = "1.10.1"
   val scalaNativeVersion = "0.4.8"
