@@ -1,11 +1,10 @@
 package jsonrpclib
 package internals
 
-import jsonrpclib.internals._
 import jsonrpclib.Endpoint.NotificationEndpoint
 import jsonrpclib.Endpoint.RequestResponseEndpoint
-import jsonrpclib.internals.OutputMessage.ErrorMessage
-import jsonrpclib.internals.OutputMessage.ResponseMessage
+import jsonrpclib.OutputMessage.ErrorMessage
+import jsonrpclib.OutputMessage.ResponseMessage
 import scala.util.Try
 
 private[jsonrpclib] abstract class MessageDispatcher[F[_]](implicit F: Monadic[F]) extends Channel.MonadicChannel[F] {
@@ -41,8 +40,8 @@ private[jsonrpclib] abstract class MessageDispatcher[F[_]](implicit F: Monadic[F
       }
   }
 
-  protected[jsonrpclib] def handleReceivedPayload(payload: Payload): F[Unit] = {
-    Codec.decode[Message](Some(payload)).map {
+  protected[jsonrpclib] def handleReceivedMessage(message: Message): F[Unit] = {
+    message match {
       case im: InputMessage =>
         doFlatMap(getEndpoint(im.method)) {
           case Some(ep) => background(im.maybeCallId, executeInputMessage(im, ep))
@@ -61,29 +60,25 @@ private[jsonrpclib] abstract class MessageDispatcher[F[_]](implicit F: Monadic[F
           case Some(pendingCall) => pendingCall(om)
           case None              => doPure(()) // TODO do something
         }
-    } match {
-      case Left(error) =>
-        sendProtocolError(error)
-      case Right(dispatch) => dispatch
     }
   }
 
-  private def sendProtocolError(callId: CallId, pError: ProtocolError): F[Unit] =
+  protected def sendProtocolError(callId: CallId, pError: ProtocolError): F[Unit] =
     sendMessage(OutputMessage.errorFrom(callId, pError))
-  private def sendProtocolError(pError: ProtocolError): F[Unit] =
+  protected def sendProtocolError(pError: ProtocolError): F[Unit] =
     sendProtocolError(CallId.NullId, pError)
 
   private def executeInputMessage(input: InputMessage, endpoint: Endpoint[F]): F[Unit] = {
     (input, endpoint) match {
       case (InputMessage.NotificationMessage(_, params), ep: NotificationEndpoint[F, in]) =>
         ep.inCodec.decode(params) match {
-          case Right(value) => ep.run(value)
+          case Right(value) => ep.run(input, value)
           case Left(value)  => reportError(params, value, ep.method)
         }
       case (InputMessage.RequestMessage(_, callId, params), ep: RequestResponseEndpoint[F, in, err, out]) =>
         ep.inCodec.decode(params) match {
           case Right(value) =>
-            doFlatMap(ep.run(value)) {
+            doFlatMap(ep.run(input, value)) {
               case Right(data) =>
                 val responseData = ep.outCodec.encode(data)
                 sendMessage(OutputMessage.ResponseMessage(callId, responseData))

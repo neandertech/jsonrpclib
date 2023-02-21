@@ -1,17 +1,16 @@
 package jsonrpclib
-package internals
 
 import com.github.plokhotnyuk.jsoniter_scala.core.JsonReader
 import com.github.plokhotnyuk.jsoniter_scala.core.JsonValueCodec
 import com.github.plokhotnyuk.jsoniter_scala.core.JsonWriter
 
 sealed trait Message { def maybeCallId: Option[CallId] }
-private[jsonrpclib] sealed trait InputMessage extends Message { def method: String }
-private[jsonrpclib] sealed trait OutputMessage extends Message {
+sealed trait InputMessage extends Message { def method: String }
+sealed trait OutputMessage extends Message {
   def callId: CallId; final override def maybeCallId: Option[CallId] = Some(callId)
 }
 
-private[jsonrpclib] object InputMessage {
+object InputMessage {
   case class RequestMessage(method: String, callId: CallId, params: Option[Payload]) extends InputMessage {
     def maybeCallId: Option[CallId] = Some(callId)
   }
@@ -19,8 +18,7 @@ private[jsonrpclib] object InputMessage {
     def maybeCallId: Option[CallId] = None
   }
 }
-
-private[jsonrpclib] object OutputMessage {
+object OutputMessage {
   def errorFrom(callId: CallId, protocolError: ProtocolError): OutputMessage =
     ErrorMessage(callId, ErrorPayload(protocolError.code, protocolError.getMessage(), None))
 
@@ -28,7 +26,7 @@ private[jsonrpclib] object OutputMessage {
   case class ResponseMessage(callId: CallId, data: Payload) extends OutputMessage
 }
 
-private[jsonrpclib] object Message {
+object Message {
 
   implicit val messageJsonValueCodecs: JsonValueCodec[Message] = new JsonValueCodec[Message] {
     val rawMessageCodec = implicitly[JsonValueCodec[internals.RawMessage]]

@@ -43,8 +43,8 @@ object SmithyClientMain extends IOApp.Simple {
       // Creating stubs to talk to the remote server
       server: TestServer[IO] <- ClientStub.stream(test.TestServer, fs2Channel)
       _ <- Stream(())
-        .concurrently(fs2Channel.output.through(lsp.encodePayloads).through(rp.stdin))
-        .concurrently(rp.stdout.through(lsp.decodePayloads).through(fs2Channel.input))
+        .concurrently(fs2Channel.output.through(lsp.encodeMessages).through(rp.stdin))
+        .concurrently(rp.stdout.through(lsp.decodeMessages).through(fs2Channel.inputOrBounce))
         .concurrently(rp.stderr.through(fs2.io.stderr[IO]))
 
       ////////////////////////////////////////////////////////

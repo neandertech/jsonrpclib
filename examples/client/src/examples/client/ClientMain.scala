@@ -41,8 +41,8 @@ object ClientMain extends IOApp.Simple {
       // Creating a channel that will be used to communicate to the server
       fs2Channel <- FS2Channel[IO](cancelTemplate = cancelEndpoint.some)
       _ <- Stream(())
-        .concurrently(fs2Channel.output.through(lsp.encodePayloads).through(rp.stdin))
-        .concurrently(rp.stdout.through(lsp.decodePayloads).through(fs2Channel.input))
+        .concurrently(fs2Channel.output.through(lsp.encodeMessages).through(rp.stdin))
+        .concurrently(rp.stdout.through(lsp.decodeMessages).through(fs2Channel.inputOrBounce))
         .concurrently(rp.stderr.through(fs2.io.stderr[IO]))
       // Creating a `IntWrapper => IO[IntWrapper]` stub that can call the server
       increment = fs2Channel.simpleStub[IntWrapper, IntWrapper]("increment")

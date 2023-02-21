@@ -54,6 +54,32 @@ object FS2ChannelSpec extends SimpleIOSuite {
     }
   }
 
+  testRes("Round trip (glob)") {
+    val endpoint: Endpoint[IO] = Endpoint[IO]("**").simple((int: IntWrapper) => IO(IntWrapper(int.int + 1)))
+
+    for {
+      clientSideChannel <- setup(endpoint)
+      remoteFunction = clientSideChannel.simpleStub[IntWrapper, IntWrapper]("inc/test")
+      result <- remoteFunction(IntWrapper(1)).toStream
+    } yield {
+      expect.same(result, IntWrapper(2))
+    }
+  }
+
+  testRes("Globs have lower priority than strict endpoints") {
+    val endpoint: Endpoint[IO] = Endpoint[IO]("inc").simple((int: IntWrapper) => IO(IntWrapper(int.int + 1)))
+    val globEndpoint: Endpoint[IO] =
+      Endpoint[IO]("**").simple((_: IntWrapper) => IO.raiseError[IntWrapper](new Throwable("Boom")))
+
+    for {
+      clientSideChannel <- setup(globEndpoint, endpoint)
+      remoteFunction = clientSideChannel.simpleStub[IntWrapper, IntWrapper]("inc")
+      result <- remoteFunction(IntWrapper(1)).toStream
+    } yield {
+      expect.same(result, IntWrapper(2))
+    }
+  }
+
   testRes("Endpoint not mounted") {
 
     for {

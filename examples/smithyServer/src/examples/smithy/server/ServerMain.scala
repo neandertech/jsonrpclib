@@ -31,8 +31,8 @@ object ServerMain extends IOApp.Simple {
       _ <- channel.withEndpointsStream(ServerEndpoints(new ServerImpl(testClient)))
       _ <- fs2.Stream
         .eval(IO.never) // running the server forever
-        .concurrently(stdin[IO](512).through(lsp.decodePayloads).through(channel.input))
-        .concurrently(channel.output.through(lsp.encodePayloads).through(stdout[IO]))
+        .concurrently(stdin[IO](512).through(lsp.decodeMessages).through(channel.inputOrBounce))
+        .concurrently(channel.output.through(lsp.encodeMessages).through(stdout[IO]))
     } yield {}
 
     // Using errorln as stdout is used by the RPC channel

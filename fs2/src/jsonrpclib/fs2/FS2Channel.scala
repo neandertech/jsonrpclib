@@ -12,16 +12,17 @@ import cats.effect.kernel._
 import cats.effect.std.Supervisor
 import cats.syntax.all._
 import cats.effect.syntax.all._
-import jsonrpclib.internals.MessageDispatcher
 import jsonrpclib.internals._
 import _root_.fs2.concurrent.{Channel => ConcurrentChannel}
 
 import scala.util.Try
+import java.util.regex.Pattern
 
 trait FS2Channel[F[_]] extends Channel[F] {
 
-  def input: Pipe[F, Payload, Unit]
-  def output: Stream[F, Payload]
+  def input: Pipe[F, Message, Unit]
+  def inputOrBounce: Pipe[F, Either[ProtocolError, Message], Unit]
+  def output: Stream[F, Message]
 
   def withEndpoint(endpoint: Endpoint[F])(implicit F: Functor[F]): Resource[F, FS2Channel[F]] =
     Resource.make(mountEndpoint(endpoint))(_ => unmountEndpoint(endpoint.method)).map(_ => this)
@@ -53,8 +54,8 @@ object FS2Channel {
   ): Stream[F, FS2Channel[F]] = {
     for {
       supervisor <- Stream.resource(Supervisor[F])
-      ref <- Ref[F].of(State[F](Map.empty, Map.empty, Map.empty, 0)).toStream
-      queue <- Stream.bracket(ConcurrentChannel.bounded[F, Payload](bufferSize))(_.closed)
+      ref <- Ref[F].of(State[F](Map.empty, Map.empty, Map.empty, Vector.empty, 0)).toStream
+      queue <- Stream.bracket(ConcurrentChannel.bounded[F, Message](bufferSize))(_.closed)
       impl = new Impl(queue, ref, supervisor, cancelTemplate)
 
       // Creating a bespoke endpoint to receive cancelation requests
@@ -74,6 +75,7 @@ object FS2Channel {
       runningCalls: Map[CallId, Fiber[F, Throwable, Unit]],
       pendingCalls: Map[CallId, OutputMessage => F[Unit]],
       endpoints: Map[String, Endpoint[F]],
+      globEndpoints: Vector[(Pattern, Endpoint[F])],
       counter: Long
   ) {
     def nextCallId: (State[F], CallId) = (this.copy(counter = counter + 1), CallId.NumberId(counter))
@@ -83,11 +85,27 @@ object FS2Channel {
       val result = pendingCalls.get(callId)
       (this.copy(pendingCalls = pendingCalls.removed(callId)), result)
     }
-    def mountEndpoint(endpoint: Endpoint[F]): Either[ConflictingMethodError, State[F]] =
-      endpoints.get(endpoint.method) match {
-        case None    => Right(this.copy(endpoints = endpoints + (endpoint.method -> endpoint)))
-        case Some(_) => Left(ConflictingMethodError(endpoint.method))
+    def mountEndpoint(endpoint: Endpoint[F]): Either[ConflictingMethodError, State[F]] = {
+      import endpoint.method
+      if (method.contains("*")) {
+        val parts = method
+          .split("\\*", -1)
+          .map { // Don't discard trailing empty string, if any.
+            case ""  => ""
+            case str => Pattern.quote(str)
+          }
+        val glob = Pattern.compile(parts.mkString(".*"))
+        Right(this.copy(globEndpoints = globEndpoints :+ (glob -> endpoint)))
+      } else {
+        endpoints.get(endpoint.method) match {
+          case None    => Right(this.copy(endpoints = endpoints + (endpoint.method -> endpoint)))
+          case Some(_) => Left(ConflictingMethodError(endpoint.method))
+        }
       }
+    }
+    def getEndpoint(method: String): Option[Endpoint[F]] = {
+      endpoints.get(method).orElse(globEndpoints.find(_._1.matcher(method).matches()).map(_._2))
+    }
     def removeEndpoint(method: String): State[F] =
       copy(endpoints = endpoints.removed(method))
 
@@ -99,7 +117,7 @@ object FS2Channel {
   }
 
   private class Impl[F[_]](
-      private val queue: ConcurrentChannel[F, Payload],
+      private val queue: ConcurrentChannel[F, Message],
       private val state: Ref[F, FS2Channel.State[F]],
       supervisor: Supervisor[F],
       maybeCancelTemplate: Option[CancelTemplate]
@@ -107,8 +125,12 @@ object FS2Channel {
       extends MessageDispatcher[F]
       with FS2Channel[F] {
 
-    def output: Stream[F, Payload] = queue.stream
-    def input: Pipe[F, Payload, Unit] = _.evalMap(handleReceivedPayload)
+    def output: Stream[F, Message] = queue.stream
+    def inputOrBounce: Pipe[F, Either[ProtocolError, Message], Unit] = _.evalMap {
+      case Left(error)    => sendProtocolError(error)
+      case Right(message) => handleReceivedMessage(message)
+    }
+    def input: Pipe[F, Message, Unit] = _.evalMap(handleReceivedMessage)
 
     def mountEndpoint(endpoint: Endpoint[F]): F[Unit] = state
       .modify(s =>
@@ -136,8 +158,8 @@ object FS2Channel {
           }
       }
     protected def reportError(params: Option[Payload], error: ProtocolError, method: String): F[Unit] = ???
-    protected def getEndpoint(method: String): F[Option[Endpoint[F]]] = state.get.map(_.endpoints.get(method))
-    protected def sendMessage(message: Message): F[Unit] = queue.send(Codec.encode(message)).void
+    protected def getEndpoint(method: String): F[Option[Endpoint[F]]] = state.get.map(_.getEndpoint(method))
+    protected def sendMessage(message: Message): F[Unit] = queue.send(message).void
 
     protected def nextCallId(): F[CallId] = state.modify(_.nextCallId)
     protected def createPromise[A](callId: CallId): F[(Try[A] => F[Unit], () => F[A])] = Deferred[F, Try[A]].map {

@@ -2,9 +2,9 @@ import mill.define.Sources
 import mill.define.Target
 import mill.util.Jvm
 import $ivy.`com.lihaoyi::mill-contrib-bloop:$MILL_VERSION`
-import $ivy.`io.github.davidgregory084::mill-tpolecat::0.3.1`
-import $ivy.`io.chris-kipp::mill-ci-release::0.1.1`
 import $ivy.`com.disneystreaming.smithy4s::smithy4s-mill-codegen-plugin::0.17.4`
+import $ivy.`io.github.davidgregory084::mill-tpolecat::0.3.2`
+import $ivy.`io.chris-kipp::mill-ci-release::0.1.5`
 
 import os.Path
 import mill._
@@ -19,7 +19,7 @@ import _root_.smithy4s.codegen.mill._
 
 object versions {
   val scala212Version = "2.12.16"
-  val scala213Version = "2.13.8"
+  val scala213Version = "2.13.10"
   val scala3Version = "3.2.1"
   val scalaJSVersion = "1.10.1"
   val scalaNativeVersion = "0.4.8"
