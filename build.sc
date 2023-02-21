@@ -1,6 +1,8 @@
+import mill.define.Sources
 import mill.define.Target
 import mill.util.Jvm
 import $ivy.`com.lihaoyi::mill-contrib-bloop:$MILL_VERSION`
+import $ivy.`com.disneystreaming.smithy4s::smithy4s-mill-codegen-plugin::0.17.4`
 import $ivy.`io.github.davidgregory084::mill-tpolecat::0.3.2`
 import $ivy.`io.chris-kipp::mill-ci-release::0.1.5`
 
@@ -13,16 +15,18 @@ import scalanativelib._
 import mill.scalajslib.api._
 import io.github.davidgregory084._
 import io.kipp.mill.ci.release.CiReleaseModule
+import _root_.smithy4s.codegen.mill._
 
 object versions {
   val scala212Version = "2.12.16"
   val scala213Version = "2.13.10"
-  val scala3Version = "3.1.2"
-  val scalaJSVersion = "1.10.1"
-  val scalaNativeVersion = "0.4.8"
+  val scala3Version = "3.2.2"
+  val scalaJSVersion = "1.13.0"
+  val scalaNativeVersion = "0.4.10"
   val munitVersion = "0.7.29"
   val munitNativeVersion = "1.0.0-M7"
-  val fs2 = "3.3.0"
+  val jsoniterVersion = "2.21.0"
+  val fs2 = "3.6.1"
   val weaver = "0.8.0"
 
   val scala213 = "2.13"
@@ -40,7 +44,7 @@ import versions._
 object core extends RPCCrossPlatformModule { cross =>
 
   def crossPlatformIvyDeps: T[Agg[Dep]] = Agg(
-    ivy"com.github.plokhotnyuk.jsoniter-scala::jsoniter-scala-macros::2.17.0"
+    ivy"com.github.plokhotnyuk.jsoniter-scala::jsoniter-scala-macros::$jsoniterVersion"
   )
 
   object jvm extends mill.Cross[JvmModule](scala213, scala3)
@@ -83,6 +87,41 @@ object fs2 extends RPCCrossPlatformModule { cross =>
 
 }
 
+object smithy extends JavaModule {}
+
+object smithy4s extends RPCCrossPlatformModule { cross =>
+
+  override def crossPlatformModuleDeps = Seq(fs2)
+  def crossPlatformIvyDeps: T[Agg[Dep]] = Agg(
+    ivy"com.disneystreaming.smithy4s::smithy4s-json::${_root_.smithy4s.codegen.BuildInfo.version}"
+  )
+
+  // A module holding the code-generation logic to help cache that task
+  object gen extends Smithy4sModule {
+    def scalaVersion = "2.13.10"
+    def smithy4sInternalDependenciesAsJars = T {
+      List(smithy.jar())
+    }
+  }
+
+  object jvm extends mill.Cross[JvmModule](scala213, scala3)
+  def sharedSmithy = T.sources(T.workspace / "smithy" / "resources" / "META-INF" / "smithy")
+  class JvmModule(cv: String) extends cross.JVM(cv) with Smithy4sModule {
+    def smithy4sInputDirs = sharedSmithy
+  }
+
+  object js extends mill.Cross[JsModule](scala213, scala3)
+  class JsModule(cv: String) extends cross.JS(cv) with Smithy4sModule {
+    def smithy4sInputDirs = sharedSmithy
+  }
+
+  object native extends mill.Cross[NativeModule](scala3)
+  class NativeModule(cv: String) extends cross.Native(cv) with Smithy4sModule {
+    def smithy4sInputDirs = sharedSmithy
+  }
+
+}
+
 object examples extends mill.define.Module {
 
   object server extends ScalaModule {
@@ -97,6 +136,27 @@ object examples extends mill.define.Module {
     def scalaVersion = versions.scala213Version
     def forkEnv: Target[Map[String, String]] = T {
       val assembledServer = server.assembly()
+      super.forkEnv() ++ Map("SERVER_JAR" -> assembledServer.path.toString())
+    }
+  }
+
+  object smithyShared extends Smithy4sModule {
+    def moduleDeps = Seq(smithy4s.jvm(versions.scala213))
+    def scalaVersion = versions.scala213Version
+  }
+
+  object smithyServer extends ScalaModule {
+    def ivyDeps = Agg(ivy"co.fs2::fs2-io:${versions.fs2}")
+    def moduleDeps = Seq(fs2.jvm(versions.scala213), smithyShared)
+    def scalaVersion = versions.scala213Version
+  }
+
+  object smithyClient extends ScalaModule {
+    def ivyDeps = Agg(ivy"co.fs2::fs2-io:${versions.fs2}")
+    def moduleDeps = Seq(fs2.jvm(versions.scala213), smithyShared)
+    def scalaVersion = versions.scala213Version
+    def forkEnv: Target[Map[String, String]] = T {
+      val assembledServer = smithyServer.assembly()
       super.forkEnv() ++ Map("SERVER_JAR" -> assembledServer.path.toString())
     }
   }
