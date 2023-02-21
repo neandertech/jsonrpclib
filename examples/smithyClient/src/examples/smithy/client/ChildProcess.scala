@@ -15,39 +15,32 @@ trait ChildProcess[F[_]] {
 object ChildProcess {
 
   def spawn[F[_]: Async](command: String*): Stream[F, ChildProcess[F]] =
-    Stream.bracket(start[F](command))(_._2).map(_._1)
+    Stream.resource(startRes(command))
 
   val readBufferSize = 512
-  private def start[F[_]: Async](command: Seq[String]) = Async[F].interruptible {
-    val p =
-      new java.lang.ProcessBuilder(command.asJava)
-        .start() // .directory(new java.io.File(wd)).start()
-    val done = Async[F].fromCompletableFuture(Sync[F].delay(p.onExit()))
 
-    val terminate: F[Unit] = Sync[F].interruptible(p.destroy())
-
-    import cats._
-    val onGlobal = new (F ~> F) {
-      def apply[A](fa: F[A]): F[A] = Async[F].evalOn(fa, scala.concurrent.ExecutionContext.global)
+  private def startRes[F[_]: Async](command: Seq[String]) = Resource
+    .make {
+      Async[F].interruptible(new java.lang.ProcessBuilder(command.asJava).start())
+    } { p =>
+      Sync[F].interruptible(p.destroy())
     }
+    .map { p =>
+      val done = Async[F].fromCompletableFuture(Sync[F].delay(p.onExit()))
+      new ChildProcess[F] {
+        def stdin: fs2.Pipe[F, Byte, Unit] =
+          writeOutputStreamFlushingChunks[F](Sync[F].interruptible(p.getOutputStream()))
 
-    val cp = new ChildProcess[F] {
-      def stdin: fs2.Pipe[F, Byte, Unit] =
-        writeOutputStreamFlushingChunks[F](Sync[F].interruptible(p.getOutputStream()))
+        def stdout: fs2.Stream[F, Byte] = fs2.io
+          .readInputStream[F](Sync[F].interruptible(p.getInputStream()), chunkSize = readBufferSize)
 
-      def stdout: fs2.Stream[F, Byte] = fs2.io
-        .readInputStream[F](Sync[F].interruptible(p.getInputStream()), chunkSize = readBufferSize)
-        .translate(onGlobal)
-
-      def stderr: fs2.Stream[F, Byte] = fs2.io
-        .readInputStream[F](Sync[F].blocking(p.getErrorStream()), chunkSize = readBufferSize)
-        .translate(onGlobal)
-        // Avoids broken pipe - we cut off when the program ends.
-        // Users can decide what to do with the error logs using the exitCode value
-        .interruptWhen(done.void.attempt)
+        def stderr: fs2.Stream[F, Byte] = fs2.io
+          .readInputStream[F](Sync[F].blocking(p.getErrorStream()), chunkSize = readBufferSize)
+          // Avoids broken pipe - we cut off when the program ends.
+          // Users can decide what to do with the error logs using the exitCode value
+          .interruptWhen(done.void.attempt)
+      }
     }
-    (cp, terminate)
-  }
 
   /** Adds a flush after each chunk
     */

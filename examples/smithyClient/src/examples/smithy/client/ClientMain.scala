@@ -23,7 +23,6 @@ object SmithyClientMain extends IOApp.Simple {
 
   // Implementing the generated interface
   object Client extends TestClient[IO] {
-    def greet(name: String): IO[GreetOutput] = IO.pure(GreetOutput(s"Client says: hello $name !"))
     def pong(pong: String): IO[Unit] = IO.consoleForIO.errorln(s"Client received pong: $pong")
   }
 
@@ -55,7 +54,7 @@ object SmithyClientMain extends IOApp.Simple {
       _ <- log(s"Client received $result1")
       _ <- Stream.eval(server.ping("Ping"))
     } yield ()
-    run.compile.drain
+    run.compile.drain.guarantee(IO.consoleForIO.errorln("Terminating client"))
   }
 
 }

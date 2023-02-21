@@ -22,6 +22,8 @@ object ServerMain extends IOApp.Simple {
     def ping(ping: String): IO[Unit] = client.pong(s"Returned to sender: $ping")
   }
 
+  def printErr(s: String): IO[Unit] = IO.consoleForIO.errorln(s)
+
   def run: IO[Unit] = {
     val run = for {
       channel <- FS2Channel[IO](cancelTemplate = Some(cancelEndpoint))
@@ -34,8 +36,7 @@ object ServerMain extends IOApp.Simple {
     } yield {}
 
     // Using errorln as stdout is used by the RPC channel
-    IO.consoleForIO.errorln("Starting server") >> run.compile.drain
-      .guarantee(IO.consoleForIO.errorln("Terminating server"))
+    printErr("Starting server") >> run.compile.drain.guarantee(printErr("Terminating server"))
   }
 
 }

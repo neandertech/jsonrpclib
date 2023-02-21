@@ -43,7 +43,7 @@ private class ClientStub[Alg[_[_, _, _, _, _]], F[_]](val service: Service[Alg],
       service.endpoints
         .traverse_ { ep =>
           val shapeId = ep.id
-          EndpointSpec.fromHints(ep.hints).liftTo[F](NotJsonRPCEndpoint(shapeId)).map { epSpec =>
+          EndpointSpec.fromHints(ep.hints).liftTo[F](NotJsonRPCEndpoint(shapeId)).flatMap { epSpec =>
             val stub = jsonRPCStub(ep, epSpec)
             cache.update(_ + (shapeId -> stub))
           }
@@ -51,7 +51,9 @@ private class ClientStub[Alg[_[_, _, _, _, _]], F[_]](val service: Service[Alg],
         .as {
           new PolyFunction5[service.Endpoint, Stub] {
             def apply[I, E, O, SI, SO](ep: service.Endpoint[I, E, O, SI, SO]): Stub[I, E, O, SI, SO] = {
-              cache.get.map { _(ep.id).asInstanceOf[I => F[O]] }
+              cache.get.map { c =>
+                c(ep.id).asInstanceOf[I => F[O]]
+              }
             }
           }
         }

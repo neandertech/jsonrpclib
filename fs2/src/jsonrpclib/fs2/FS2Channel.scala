@@ -14,6 +14,7 @@ import cats.syntax.all._
 import cats.effect.syntax.all._
 import jsonrpclib.internals.MessageDispatcher
 import jsonrpclib.internals._
+import _root_.fs2.concurrent.{Channel => ConcurrentChannel}
 
 import scala.util.Try
 
@@ -53,7 +54,7 @@ object FS2Channel {
     for {
       supervisor <- Stream.resource(Supervisor[F])
       ref <- Ref[F].of(State[F](Map.empty, Map.empty, Map.empty, 0)).toStream
-      queue <- cats.effect.std.Queue.bounded[F, Payload](bufferSize).toStream
+      queue <- Stream.bracket(ConcurrentChannel.bounded[F, Payload](bufferSize))(_.closed)
       impl = new Impl(queue, ref, supervisor, cancelTemplate)
 
       // Creating a bespoke endpoint to receive cancelation requests
@@ -98,7 +99,7 @@ object FS2Channel {
   }
 
   private class Impl[F[_]](
-      private val queue: cats.effect.std.Queue[F, Payload],
+      private val queue: ConcurrentChannel[F, Payload],
       private val state: Ref[F, FS2Channel.State[F]],
       supervisor: Supervisor[F],
       maybeCancelTemplate: Option[CancelTemplate]
@@ -106,7 +107,7 @@ object FS2Channel {
       extends MessageDispatcher[F]
       with FS2Channel[F] {
 
-    def output: Stream[F, Payload] = Stream.fromQueueUnterminated(queue)
+    def output: Stream[F, Payload] = queue.stream
     def input: Pipe[F, Payload, Unit] = _.evalMap(handleReceivedPayload)
 
     def mountEndpoint(endpoint: Endpoint[F]): F[Unit] = state
@@ -136,7 +137,7 @@ object FS2Channel {
       }
     protected def reportError(params: Option[Payload], error: ProtocolError, method: String): F[Unit] = ???
     protected def getEndpoint(method: String): F[Option[Endpoint[F]]] = state.get.map(_.endpoints.get(method))
-    protected def sendMessage(message: Message): F[Unit] = queue.offer(Codec.encode(message))
+    protected def sendMessage(message: Message): F[Unit] = queue.send(Codec.encode(message)).void
 
     protected def nextCallId(): F[CallId] = state.modify(_.nextCallId)
     protected def createPromise[A](callId: CallId): F[(Try[A] => F[Unit], () => F[A])] = Deferred[F, Try[A]].map {

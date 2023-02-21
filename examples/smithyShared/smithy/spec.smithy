@@ -13,7 +13,7 @@ service TestServer {
 
 @jsonRPC
 service TestClient {
-  operations: [Greet, Pong]
+  operations: [Pong]
 }
 
 @jsonRequest("greet")
