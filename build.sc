@@ -1,8 +1,10 @@
+import mill.define.Sources
 import mill.define.Target
 import mill.util.Jvm
 import $ivy.`com.lihaoyi::mill-contrib-bloop:$MILL_VERSION`
 import $ivy.`io.github.davidgregory084::mill-tpolecat::0.3.1`
 import $ivy.`io.chris-kipp::mill-ci-release::0.1.1`
+import $ivy.`com.disneystreaming.smithy4s::smithy4s-mill-codegen-plugin::0.17.4`
 
 import os.Path
 import mill._
@@ -13,11 +15,12 @@ import scalanativelib._
 import mill.scalajslib.api._
 import io.github.davidgregory084._
 import io.kipp.mill.ci.release.CiReleaseModule
+import _root_.smithy4s.codegen.mill._
 
 object versions {
   val scala212Version = "2.12.16"
   val scala213Version = "2.13.8"
-  val scala3Version = "3.1.2"
+  val scala3Version = "3.2.1"
   val scalaJSVersion = "1.10.1"
   val scalaNativeVersion = "0.4.8"
   val munitVersion = "0.7.29"
@@ -83,6 +86,46 @@ object fs2 extends RPCCrossPlatformModule { cross =>
 
 }
 
+object smithy extends JavaModule {}
+
+object smithy4s extends RPCCrossPlatformModule { cross =>
+
+  override def crossPlatformModuleDeps = Seq(fs2)
+  def crossPlatformIvyDeps: T[Agg[Dep]] = Agg(
+    ivy"com.disneystreaming.smithy4s::smithy4s-json::${_root_.smithy4s.codegen.BuildInfo.version}"
+  )
+
+  // A module holding the code-generation logic to help cache that task
+  object gen extends Smithy4sModule {
+    def scalaVersion = "2.13.10"
+    def smithy4sInternalDependenciesAsJars = T {
+      smithy.jar() +: super.smithy4sInternalDependenciesAsJars()
+    }
+  }
+
+  object jvm extends mill.Cross[JvmModule](scala213, scala3)
+  class JvmModule(cv: String) extends cross.JVM(cv) {
+    override def sources: Sources = T.sources {
+      super.sources() ++ gen.generatedSources()
+    }
+  }
+
+  object js extends mill.Cross[JsModule](scala213, scala3)
+  class JsModule(cv: String) extends cross.JS(cv) {
+    override def sources: Sources = T.sources {
+      super.sources() ++ gen.generatedSources()
+    }
+  }
+
+  object native extends mill.Cross[NativeModule](scala3)
+  class NativeModule(cv: String) extends cross.Native(cv) {
+    override def sources: Sources = T.sources {
+      super.sources() ++ gen.generatedSources()
+    }
+  }
+
+}
+
 object examples extends mill.define.Module {
 
   object server extends ScalaModule {
@@ -100,6 +143,22 @@ object examples extends mill.define.Module {
       super.forkEnv() ++ Map("SERVER_JAR" -> assembledServer.path.toString())
     }
   }
+
+  // object smithyServer extends ScalaModule {
+  //   def ivyDeps = Agg(ivy"co.fs2::fs2-io:${versions.fs2}")
+  //   def moduleDeps = Seq(fs2.jvm(versions.scala213), smithy4s.jvm(versions.scala213))
+  //   def scalaVersion = versions.scala213Version
+  // }
+
+  // object smithyClient extends ScalaModule {
+  //   def ivyDeps = Agg(ivy"co.fs2::fs2-io:${versions.fs2}")
+  //   def moduleDeps = Seq(fs2.jvm(versions.scala213), smithy4s.jvm(versions.scala213))
+  //   def scalaVersion = versions.scala213Version
+  //   def forkEnv: Target[Map[String, String]] = T {
+  //     val assembledServer = smithyServer.assembly()
+  //     super.forkEnv() ++ Map("SERVER_JAR" -> assembledServer.path.toString())
+  //   }
+  // }
 
 }
 
