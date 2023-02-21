@@ -20,11 +20,12 @@ import _root_.smithy4s.codegen.mill._
 object versions {
   val scala212Version = "2.12.16"
   val scala213Version = "2.13.10"
-  val scala3Version = "3.2.1"
-  val scalaJSVersion = "1.10.1"
-  val scalaNativeVersion = "0.4.8"
+  val scala3Version = "3.2.2"
+  val scalaJSVersion = "1.13.0"
+  val scalaNativeVersion = "0.4.10"
   val munitVersion = "0.7.29"
   val munitNativeVersion = "1.0.0-M7"
+  val jsoniterVersion = "2.21.0"
   val fs2 = "3.6.1"
   val weaver = "0.8.0"
 
@@ -43,7 +44,7 @@ import versions._
 object core extends RPCCrossPlatformModule { cross =>
 
   def crossPlatformIvyDeps: T[Agg[Dep]] = Agg(
-    ivy"com.github.plokhotnyuk.jsoniter-scala::jsoniter-scala-macros::2.17.0"
+    ivy"com.github.plokhotnyuk.jsoniter-scala::jsoniter-scala-macros::$jsoniterVersion"
   )
 
   object jvm extends mill.Cross[JvmModule](scala213, scala3)
