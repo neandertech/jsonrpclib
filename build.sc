@@ -99,29 +99,24 @@ object smithy4s extends RPCCrossPlatformModule { cross =>
   object gen extends Smithy4sModule {
     def scalaVersion = "2.13.10"
     def smithy4sInternalDependenciesAsJars = T {
-      smithy.jar() +: super.smithy4sInternalDependenciesAsJars()
+      List(smithy.jar())
     }
   }
 
   object jvm extends mill.Cross[JvmModule](scala213, scala3)
-  class JvmModule(cv: String) extends cross.JVM(cv) {
-    override def sources: Sources = T.sources {
-      super.sources() ++ gen.generatedSources()
-    }
+  def sharedSmithy = T.sources(T.workspace / "smithy" / "resources" / "META-INF" / "smithy")
+  class JvmModule(cv: String) extends cross.JVM(cv) with Smithy4sModule {
+    def smithy4sInputDirs = sharedSmithy
   }
 
   object js extends mill.Cross[JsModule](scala213, scala3)
-  class JsModule(cv: String) extends cross.JS(cv) {
-    override def sources: Sources = T.sources {
-      super.sources() ++ gen.generatedSources()
-    }
+  class JsModule(cv: String) extends cross.JS(cv) with Smithy4sModule {
+    def smithy4sInputDirs = sharedSmithy
   }
 
   object native extends mill.Cross[NativeModule](scala3)
-  class NativeModule(cv: String) extends cross.Native(cv) {
-    override def sources: Sources = T.sources {
-      super.sources() ++ gen.generatedSources()
-    }
+  class NativeModule(cv: String) extends cross.Native(cv) with Smithy4sModule {
+    def smithy4sInputDirs = sharedSmithy
   }
 
 }
@@ -144,21 +139,26 @@ object examples extends mill.define.Module {
     }
   }
 
-  // object smithyServer extends ScalaModule {
-  //   def ivyDeps = Agg(ivy"co.fs2::fs2-io:${versions.fs2}")
-  //   def moduleDeps = Seq(fs2.jvm(versions.scala213), smithy4s.jvm(versions.scala213))
-  //   def scalaVersion = versions.scala213Version
-  // }
+  object smithyShared extends Smithy4sModule {
+    def moduleDeps = Seq(smithy4s.jvm(versions.scala213))
+    def scalaVersion = versions.scala213Version
+  }
 
-  // object smithyClient extends ScalaModule {
-  //   def ivyDeps = Agg(ivy"co.fs2::fs2-io:${versions.fs2}")
-  //   def moduleDeps = Seq(fs2.jvm(versions.scala213), smithy4s.jvm(versions.scala213))
-  //   def scalaVersion = versions.scala213Version
-  //   def forkEnv: Target[Map[String, String]] = T {
-  //     val assembledServer = smithyServer.assembly()
-  //     super.forkEnv() ++ Map("SERVER_JAR" -> assembledServer.path.toString())
-  //   }
-  // }
+  object smithyServer extends ScalaModule {
+    def ivyDeps = Agg(ivy"co.fs2::fs2-io:${versions.fs2}")
+    def moduleDeps = Seq(fs2.jvm(versions.scala213), smithyShared)
+    def scalaVersion = versions.scala213Version
+  }
+
+  object smithyClient extends ScalaModule {
+    def ivyDeps = Agg(ivy"co.fs2::fs2-io:${versions.fs2}")
+    def moduleDeps = Seq(fs2.jvm(versions.scala213), smithyShared)
+    def scalaVersion = versions.scala213Version
+    def forkEnv: Target[Map[String, String]] = T {
+      val assembledServer = smithyServer.assembly()
+      super.forkEnv() ++ Map("SERVER_JAR" -> assembledServer.path.toString())
+    }
+  }
 
 }
 
