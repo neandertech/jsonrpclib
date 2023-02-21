@@ -15,7 +15,7 @@ object ServerMain extends IOApp.Simple {
   // Reserving a method for cancelation.
   val cancelEndpoint = CancelTemplate.make[CallId]("$/cancel", identity, identity)
 
-  // Implementing an incrementation endpoint
+  // Implementing the generated interface
   class ServerImpl(client: TestClient[IO]) extends TestServer[IO] {
     def greet(name: String): IO[GreetOutput] = IO.pure(GreetOutput(s"Server says: hello $name !"))
 
