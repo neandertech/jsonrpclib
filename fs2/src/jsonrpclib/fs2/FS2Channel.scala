@@ -12,8 +12,7 @@ import cats.effect.kernel._
 import cats.effect.std.Supervisor
 import cats.syntax.all._
 import cats.effect.syntax.all._
-import jsonrpclib.internals._
-import _root_.fs2.concurrent.{Channel => ConcurrentChannel}
+import jsonrpclib.internals.MessageDispatcher
 
 import scala.util.Try
 import java.util.regex.Pattern
@@ -55,7 +54,7 @@ object FS2Channel {
     for {
       supervisor <- Stream.resource(Supervisor[F])
       ref <- Ref[F].of(State[F](Map.empty, Map.empty, Map.empty, Vector.empty, 0)).toStream
-      queue <- Stream.bracket(ConcurrentChannel.bounded[F, Message](bufferSize))(_.closed)
+      queue <- cats.effect.std.Queue.bounded[F, Message](bufferSize).toStream
       impl = new Impl(queue, ref, supervisor, cancelTemplate)
 
       // Creating a bespoke endpoint to receive cancelation requests
@@ -117,7 +116,7 @@ object FS2Channel {
   }
 
   private class Impl[F[_]](
-      private val queue: ConcurrentChannel[F, Message],
+      private val queue: cats.effect.std.Queue[F, Message],
       private val state: Ref[F, FS2Channel.State[F]],
       supervisor: Supervisor[F],
       maybeCancelTemplate: Option[CancelTemplate]
@@ -125,7 +124,7 @@ object FS2Channel {
       extends MessageDispatcher[F]
       with FS2Channel[F] {
 
-    def output: Stream[F, Message] = queue.stream
+    def output: Stream[F, Message] = Stream.fromQueueUnterminated(queue)
     def inputOrBounce: Pipe[F, Either[ProtocolError, Message], Unit] = _.evalMap {
       case Left(error)    => sendProtocolError(error)
       case Right(message) => handleReceivedMessage(message)
@@ -159,7 +158,7 @@ object FS2Channel {
       }
     protected def reportError(params: Option[Payload], error: ProtocolError, method: String): F[Unit] = ???
     protected def getEndpoint(method: String): F[Option[Endpoint[F]]] = state.get.map(_.getEndpoint(method))
-    protected def sendMessage(message: Message): F[Unit] = queue.send(message).void
+    protected def sendMessage(message: Message): F[Unit] = queue.offer(message)
 
     protected def nextCallId(): F[CallId] = state.modify(_.nextCallId)
     protected def createPromise[A](callId: CallId): F[(Try[A] => F[Unit], () => F[A])] = Deferred[F, Try[A]].map {
