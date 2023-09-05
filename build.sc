@@ -23,7 +23,7 @@ object versions {
   val munitVersion = "0.7.29"
   val munitNativeVersion = "1.0.0-M7"
   val fs2 = "3.3.0"
-  val weaver = "0.8.0"
+  val weaver = "0.8.3"
 
   val scala213 = "2.13"
   val scala212 = "2.12"
