@@ -21,7 +21,7 @@ object versions {
   val scalaJSVersion = "1.10.1"
   val scalaNativeVersion = "0.4.11"
   val munitVersion = "0.7.29"
-  val munitNativeVersion = "1.0.0-M7"
+  val munitNativeVersion = "1.0.0-M8"
   val fs2 = "3.3.0"
   val weaver = "0.8.0"
 
