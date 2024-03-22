@@ -1,7 +1,7 @@
 import mill.define.Target
 import mill.util.Jvm
 import $ivy.`com.lihaoyi::mill-contrib-bloop:$MILL_VERSION`
-import $ivy.`io.github.davidgregory084::mill-tpolecat::0.3.2`
+import $ivy.`io.github.davidgregory084::mill-tpolecat::0.3.5`
 import $ivy.`io.chris-kipp::mill-ci-release::0.1.9`
 
 import os.Path
@@ -15,15 +15,15 @@ import io.github.davidgregory084._
 import io.kipp.mill.ci.release.CiReleaseModule
 
 object versions {
-  val scala212Version = "2.12.16"
+  val scala212Version = "2.12.1"
   val scala213Version = "2.13.11"
-  val scala3Version = "3.1.2"
-  val scalaJSVersion = "1.10.1"
-  val scalaNativeVersion = "0.4.11"
-  val munitVersion = "0.7.29"
-  val munitNativeVersion = "1.0.0-M7"
-  val fs2 = "3.3.0"
-  val weaver = "0.8.0"
+  val scala3Version = "3.3.3"
+  val scalaJSVersion = "1.14.0"
+  val scalaNativeVersion = "0.4.17"
+  val munitVersion = "1.0.0-M9"
+  val fs2Version = "3.10.0"
+  val weaverVersion = "0.8.3"
+  val jsoniterVersion = "2.17.0"
 
   val scala213 = "2.13"
   val scala212 = "2.12"
@@ -40,7 +40,7 @@ import versions._
 object core extends RPCCrossPlatformModule { cross =>
 
   def crossPlatformIvyDeps: T[Agg[Dep]] = Agg(
-    ivy"com.github.plokhotnyuk.jsoniter-scala::jsoniter-scala-macros::2.17.0"
+    ivy"com.github.plokhotnyuk.jsoniter-scala::jsoniter-scala-macros::${jsoniterVersion}"
   )
 
   object jvm extends mill.Cross[JvmModule](scala213, scala3)
@@ -63,7 +63,7 @@ object fs2 extends RPCCrossPlatformModule { cross =>
 
   override def crossPlatformModuleDeps = Seq(core)
   def crossPlatformIvyDeps: T[Agg[Dep]] = Agg(
-    ivy"co.fs2::fs2-core::${versions.fs2}"
+    ivy"co.fs2::fs2-core::${fs2Version}"
   )
 
   object jvm extends mill.Cross[JvmModule](scala213, scala3)
@@ -86,13 +86,13 @@ object fs2 extends RPCCrossPlatformModule { cross =>
 object examples extends mill.define.Module {
 
   object server extends ScalaModule {
-    def ivyDeps = Agg(ivy"co.fs2::fs2-io:${versions.fs2}")
+    def ivyDeps = Agg(ivy"co.fs2::fs2-io:${fs2Version}")
     def moduleDeps = Seq(fs2.jvm(versions.scala213))
     def scalaVersion = versions.scala213Version
   }
 
   object client extends ScalaModule {
-    def ivyDeps = Agg(ivy"co.fs2::fs2-io:${versions.fs2}")
+    def ivyDeps = Agg(ivy"co.fs2::fs2-io:$fs2Version")
     def moduleDeps = Seq(fs2.jvm(versions.scala213))
     def scalaVersion = versions.scala213Version
     def forkEnv: Target[Map[String, String]] = T {
@@ -118,7 +118,7 @@ trait RPCCrossPlatformModule extends Module { shared =>
     override def platformLabel: String = "jvm"
 
     trait WeaverTests extends Tests {
-      def ivyDeps = super.ivyDeps() ++ Agg(ivy"com.disneystreaming::weaver-cats::$weaver")
+      def ivyDeps = super.ivyDeps() ++ Agg(ivy"com.disneystreaming::weaver-cats::$weaverVersion")
       def testFramework = "weaver.framework.CatsEffect"
     }
 
@@ -144,7 +144,7 @@ trait RPCCrossPlatformModule extends Module { shared =>
     override def skipIdea = true
 
     trait WeaverTests extends Tests {
-      def ivyDeps = super.ivyDeps() ++ Agg(ivy"com.disneystreaming::weaver-cats::$weaver")
+      def ivyDeps = super.ivyDeps() ++ Agg(ivy"com.disneystreaming::weaver-cats::$weaverVersion")
       def testFramework = "weaver.framework.CatsEffect"
     }
 
@@ -180,12 +180,12 @@ trait RPCCrossPlatformModule extends Module { shared =>
     override def skipBloop = true
 
     trait WeaverTests extends Tests {
-      def ivyDeps = super.ivyDeps() ++ Agg(ivy"com.disneystreaming::weaver-cats::$weaver")
+      def ivyDeps = super.ivyDeps() ++ Agg(ivy"com.disneystreaming::weaver-cats::$weaverVersion")
       def testFramework = "weaver.framework.CatsEffect"
     }
 
     trait MunitTests extends Tests with TestModule.Munit {
-      def ivyDeps = super.ivyDeps() ++ Agg(ivy"org.scalameta::munit::$munitNativeVersion")
+      def ivyDeps = super.ivyDeps() ++ Agg(ivy"org.scalameta::munit::$munitVersion")
     }
 
     trait Tests extends super.Tests with mill.contrib.Bloop.Module {
