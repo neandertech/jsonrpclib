@@ -35,10 +35,7 @@ object Payload {
 
   implicit val payloadJsonValueCodec: JsonValueCodec[Payload] = new JsonValueCodec[Payload] {
     def decodeValue(in: JsonReader, default: Payload): Payload = {
-      val value = in.readRawValAsBytes()
-      println(value.toList)
-      Data(value)
-      // Payload(in.readRawValAsBytes())
+      Data(in.readRawValAsBytes())
     }
 
     def encodeValue(bytes: Payload, out: JsonWriter): Unit =

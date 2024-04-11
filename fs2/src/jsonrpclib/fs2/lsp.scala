@@ -46,12 +46,13 @@ object lsp {
   private def writeChunk(payload: Payload): Chunk[Byte] = {
     val bytes = payload match {
       case Data(array) => array
-      case NullPayload => "null".getBytes // TODO: really?
+      case NullPayload => nullArray
     }
     val header = s"Content-Length: ${bytes.size}" + "\r\n" * 2
     Chunk.array(header.getBytes()) ++ Chunk.array(bytes)
   }
 
+  private val nullArray = "null".getBytes()
   private val returnByte = '\r'.toByte
   private val newlineByte = '\n'.toByte
 
