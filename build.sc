@@ -15,14 +15,14 @@ import io.github.davidgregory084._
 import io.kipp.mill.ci.release.CiReleaseModule
 
 object versions {
-  val scala212Version = "2.12.1"
-  val scala213Version = "2.13.11"
-  val scala3Version = "3.3.3"
+  val scala212Version = "2.12.20"
+  val scala213Version = "2.13.16"
+  val scala3Version = "3.3.5"
   val scalaJSVersion = "1.14.0"
   val scalaNativeVersion = "0.4.17"
-  val munitVersion = "1.0.0-M9"
-  val fs2Version = "3.10.0"
-  val weaverVersion = "0.8.3"
+  val munitVersion = "1.1.0"
+  val fs2Version = "3.12.0"
+  val weaverVersion = "0.8.4"
   val jsoniterVersion = "2.17.0"
 
   val scala213 = "2.13"
