@@ -4,7 +4,7 @@ import java.net.URI
 
 inThisBuild(
   List(
-    organization := "org.polyvariant",
+    organization := "tech.neander",
     homepage := Some(url("https://github.com/neandertech/jsonrpclib")),
     licenses := List(License.Apache2),
     developers := List(
