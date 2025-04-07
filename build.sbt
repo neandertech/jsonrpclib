@@ -1,29 +1,26 @@
 import org.typelevel.sbt.tpolecat.DevMode
 import org.typelevel.sbt.tpolecat.OptionsMode
+import java.net.URI
+
+inThisBuild(
+  List(
+    organization := "tech.neander",
+    homepage := Some(url("https://github.com/neandertech/jsonrpclib")),
+    licenses := List(License.Apache2),
+    developers := List(
+      Developer("Baccata", "Olivier Mélois", "baccata64@gmail.com", URI.create("https://github.com/baccata").toURL)
+    ),
+    sonatypeCredentialHost := "s01.oss.sonatype.org",
+    sonatypeRepository := "https://s01.oss.sonatype.org/service/local"
+  )
+)
+
 val scala213 = "2.13.16"
 val scala3 = "3.3.5"
 val allScalaVersions = List(scala213, scala3)
 val jvmScalaVersions = allScalaVersions
 val jsScalaVersions = allScalaVersions
 val nativeScalaVersions = allScalaVersions
-
-/*
-
-  def pomSettings = PomSettings(
-    description = "A Scala jsonrpc library",
-    organization = "tech.neander",
-    url = "https://github.com/neandertech/jsonrpclib",
-    licenses = Seq(License.`Apache-2.0`),
-    versionControl = VersionControl(Some("https://github.com/neandertech/jsonrpclib")),
-    developers = Seq(
-      Developer("Baccata", "Olivier Mélois", "https://github.com/baccata")
-    )
-  )
-
-  override def sonatypeUri = "https://s01.oss.sonatype.org/service/local"
-  override def sonatypeSnapshotUri =
-    "https://s01.oss.sonatype.org/content/repositories/snapshots"
- */
 
 ThisBuild / tpolecatOptionsMode := DevMode
 
