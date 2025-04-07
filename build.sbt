@@ -35,7 +35,11 @@ val commonSettings = Seq(
   //
   libraryDependencies ++= Seq(
     "com.disneystreaming" %%% "weaver-cats" % "0.8.4" % Test
-  )
+  ),
+  mimaPreviousArtifacts := Set(
+    organization.value %%% name.value % "0.0.7"
+  ),
+  scalacOptions += "-java-output-version:8"
 )
 
 val core = projectMatrix
@@ -55,6 +59,7 @@ val core = projectMatrix
   )
   .disablePlugins(AssemblyPlugin)
   .settings(
+    name := "jsonrpclib-core",
     commonSettings,
     libraryDependencies ++= Seq(
       "com.github.plokhotnyuk.jsoniter-scala" %%% "jsoniter-scala-macros" % "2.17.0"
@@ -69,6 +74,7 @@ val fs2 = projectMatrix
   .disablePlugins(AssemblyPlugin)
   .dependsOn(core)
   .settings(
+    name := "jsonrpclib-fs2",
     commonSettings,
     libraryDependencies ++= Seq(
       "co.fs2" %%% "fs2-io" % "3.12.0"
@@ -83,6 +89,7 @@ val exampleServer = projectMatrix
     commonSettings,
     publish / skip := true
   )
+  .disablePlugins(MimaPlugin)
 
 val exampleClient = projectMatrix
   .in(file("modules") / "examples/client")
@@ -99,10 +106,14 @@ val exampleClient = projectMatrix
     commonSettings,
     publish / skip := true
   )
+  .disablePlugins(MimaPlugin)
 
 val root = project
   .in(file("."))
   .settings(
     publish / skip := true
   )
+  .disablePlugins(MimaPlugin, AssemblyPlugin)
   .aggregate(List(core, fs2, exampleServer, exampleClient).flatMap(_.projectRefs): _*)
+
+addCommandAlias("ci", "test;scalafmtCheckAll;mimaReportBinaryIssues")
