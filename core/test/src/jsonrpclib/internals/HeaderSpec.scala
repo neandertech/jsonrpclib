@@ -1,6 +1,6 @@
 package jsonrpclib.internals
 
-import munit.FunSuite
+import weaver._
 import java.io.ByteArrayInputStream
 import java.io.BufferedReader
 import java.io.InputStreamReader
@@ -8,7 +8,7 @@ import jsonrpclib.ProtocolError
 import java.io.IOException
 import java.io.UncheckedIOException
 
-class HeaderSpec() extends FunSuite {
+object HeaderSpec extends FunSuite {
 
   test("headers (all)") {
     val result = read(
@@ -18,7 +18,7 @@ class HeaderSpec() extends FunSuite {
       "foo..."
     )
     val expected = Result(LSPHeaders(123, "application/vscode-jsonrpc", "utf-8"), "foo...")
-    assertEquals(result, Right(expected))
+    assert.same(result, Right(expected))
   }
 
   test("headers (only content-)") {
@@ -28,7 +28,7 @@ class HeaderSpec() extends FunSuite {
       "foo..."
     )
     val expected = Result(LSPHeaders(123, "application/json", "UTF-8"), "foo...")
-    assertEquals(result, Right(expected))
+    assert.same(result, Right(expected))
   }
 
   test("no header)") {
@@ -36,7 +36,7 @@ class HeaderSpec() extends FunSuite {
       "foo"
     )
     val expected = ProtocolError.ParseError("Could not parse LSP headers")
-    assertEquals(result, Left(expected))
+    assert.same(result, Left(expected))
   }
 
   test("missing content-length") {
@@ -46,7 +46,7 @@ class HeaderSpec() extends FunSuite {
       "foo..."
     )
     val expected = ProtocolError.ParseError("Missing Content-Length header")
-    assertEquals(result, Left(expected))
+    assert.same(result, Left(expected))
   }
 
   case class Result(header: LSPHeaders, rest: String)

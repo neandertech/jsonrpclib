@@ -1,7 +1,6 @@
 package jsonrpclib.fs2
 
 import cats.MonadThrow
-import cats.implicits._
 import fs2.Chunk
 import fs2.Stream
 import fs2.Pipe
