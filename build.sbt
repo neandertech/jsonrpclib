@@ -114,7 +114,8 @@ val compileCoreModules = {
   for {
     scalaVersionSuffix <- List("", "3")
     platformSuffix <- List("", "JS", "Native")
-  } yield s"core$platformSuffix$scalaVersionSuffix/compile"
+    task <- List("compile", "package")
+  } yield s"core$platformSuffix$scalaVersionSuffix/$task"
 }.mkString(";")
 
 addCommandAlias(
