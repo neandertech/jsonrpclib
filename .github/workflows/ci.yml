@@ -32,8 +32,8 @@ jobs:
       - name: Test
         run: |
           # Sometimes, the first compile of a jsoniter macro fails: https://github.com/plokhotnyuk/jsoniter-scala/issues/564
-          # so we run it once just as a best effort, and then actually run the rest of CI
-          (sbt compile || exit 0)
+          # so we run it a couple times as a best effort, and then actually run the rest of CI
+          (sbt compile || sbt compile)
           sbt ci
 
       - name: Publish ${{ github.ref }}
