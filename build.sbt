@@ -38,12 +38,16 @@ val core = projectMatrix
   .in(file("modules") / "core")
   .jvmPlatform(
     jvmScalaVersions,
-    Test / unmanagedSourceDirectories ++= Seq(projectMatrixBaseDirectory.value / "src" / "test" / "scalajvm-native")
+    Test / unmanagedSourceDirectories ++= Seq(
+      (projectMatrixBaseDirectory.value / "src" / "test" / "scalajvm-native").getAbsoluteFile
+    )
   )
   .jsPlatform(jsScalaVersions)
   .nativePlatform(
     nativeScalaVersions,
-    Test / unmanagedSourceDirectories ++= Seq(projectMatrixBaseDirectory.value / "src" / "test" / "scalajvm-native")
+    Test / unmanagedSourceDirectories ++= Seq(
+      (projectMatrixBaseDirectory.value / "src" / "test" / "scalajvm-native").getAbsoluteFile
+    )
   )
   .disablePlugins(AssemblyPlugin)
   .settings(
