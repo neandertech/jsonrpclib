@@ -30,7 +30,11 @@ jobs:
         uses: sbt/setup-sbt@v1
 
       - name: Test
-        run: sbt ci
+        run: |
+          # Sometimes, the first compile of a jsoniter macro fails: https://github.com/plokhotnyuk/jsoniter-scala/issues/564
+          # so we run it once just as a best effort, and then actually run the rest of CI
+          (sbt compile || exit 0)
+          sbt ci
 
       - name: Publish ${{ github.ref }}
         # if: github.event_name != 'pull_request' && (startsWith(github.ref, 'refs/tags/v') || (github.ref == 'refs/heads/main'))

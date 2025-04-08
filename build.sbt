@@ -116,5 +116,4 @@ val root = project
   .disablePlugins(MimaPlugin, AssemblyPlugin)
   .aggregate(List(core, fs2, exampleServer, exampleClient).flatMap(_.projectRefs): _*)
 
-// need to compile first because of https://github.com/plokhotnyuk/jsoniter-scala/issues/564
-addCommandAlias("ci", "compile;test;scalafmtCheckAll;mimaReportBinaryIssues")
+addCommandAlias("ci", "test;scalafmtCheckAll;mimaReportBinaryIssues")
