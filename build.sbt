@@ -22,6 +22,8 @@ val jvmScalaVersions = allScalaVersions
 val jsScalaVersions = allScalaVersions
 val nativeScalaVersions = allScalaVersions
 
+val fs2Version = "3.12.0"
+
 ThisBuild / tpolecatOptionsMode := DevMode
 
 val commonSettings = Seq(
@@ -69,7 +71,7 @@ val fs2 = projectMatrix
     name := "jsonrpclib-fs2",
     commonSettings,
     libraryDependencies ++= Seq(
-      "co.fs2" %%% "fs2-io" % "3.12.0"
+      "co.fs2" %%% "fs2-core" % fs2Version
     )
   )
 
@@ -79,7 +81,10 @@ val exampleServer = projectMatrix
   .dependsOn(fs2)
   .settings(
     commonSettings,
-    publish / skip := true
+    publish / skip := true,
+    libraryDependencies ++= Seq(
+      "co.fs2" %%% "fs2-io" % fs2Version
+    )
   )
   .disablePlugins(MimaPlugin)
 
@@ -96,7 +101,10 @@ val exampleClient = projectMatrix
   .dependsOn(fs2)
   .settings(
     commonSettings,
-    publish / skip := true
+    publish / skip := true,
+    libraryDependencies ++= Seq(
+      "co.fs2" %%% "fs2-io" % fs2Version
+    )
   )
   .disablePlugins(MimaPlugin)
 
