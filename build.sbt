@@ -4,7 +4,7 @@ import java.net.URI
 
 inThisBuild(
   List(
-    organization := "org.polyvariant",
+    organization := "tech.neander",
     homepage := Some(url("https://github.com/neandertech/jsonrpclib")),
     licenses := List(License.Apache2),
     developers := List(
@@ -37,7 +37,7 @@ val commonSettings = Seq(
     "com.disneystreaming" %%% "weaver-cats" % "0.8.4" % Test
   ),
   mimaPreviousArtifacts := Set(
-    "tech.neander" %%% name.value % "0.0.7"
+    organization.value %%% name.value % "0.0.7"
   ),
   scalacOptions += "-java-output-version:8"
 )
