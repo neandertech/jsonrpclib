@@ -3,6 +3,7 @@ package jsonrpclib
 import com.github.plokhotnyuk.jsoniter_scala.core.JsonReader
 import com.github.plokhotnyuk.jsoniter_scala.core.JsonValueCodec
 import com.github.plokhotnyuk.jsoniter_scala.core.JsonWriter
+import jsonrpclib.internals.RawMessageCodec._
 
 sealed trait Message { def maybeCallId: Option[CallId] }
 sealed trait InputMessage extends Message { def method: String }

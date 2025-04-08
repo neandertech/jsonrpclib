@@ -53,7 +53,4 @@ private[jsonrpclib] object RawMessage {
       RawMessage(`2.0`, result = Some(data.stripNull), id = Some(callId))
   }
 
-  implicit val rawMessageJsonValueCodecs: JsonValueCodec[RawMessage] =
-    JsonCodecMaker.make(CodecMakerConfig.withSkipNestedOptionValues(true))
-
 }
