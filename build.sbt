@@ -25,14 +25,6 @@ val nativeScalaVersions = allScalaVersions
 ThisBuild / tpolecatOptionsMode := DevMode
 
 val commonSettings = Seq(
-  // https://github.com/scala/scala3/issues/18674
-  Test / scalacOptions -= "-Wunused:implicits",
-  Test / scalacOptions -= "-Wunused:explicits",
-  Test / scalacOptions -= "-Wunused:imports",
-  Test / scalacOptions -= "-Wunused:locals",
-  Test / scalacOptions -= "-Wunused:params",
-  Test / scalacOptions -= "-Wunused:privates",
-  //
   libraryDependencies ++= Seq(
     "com.disneystreaming" %%% "weaver-cats" % "0.8.4" % Test
   ),
