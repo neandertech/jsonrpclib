@@ -5,7 +5,6 @@ import jsonrpclib.internals._
 import com.github.plokhotnyuk.jsoniter_scala.core._
 import jsonrpclib.CallId.NumberId
 import jsonrpclib.OutputMessage.ResponseMessage
-import jsonrpclib.internals.RawMessageCodec._
 
 object RawMessageSpec extends FunSuite {
   test("json parsing with null result") {
