@@ -12,6 +12,8 @@ import java.nio.charset.Charset
 import java.nio.charset.StandardCharsets
 import jsonrpclib.Message
 import jsonrpclib.ProtocolError
+import jsonrpclib.Payload.Data
+import jsonrpclib.Payload.NullPayload
 
 object lsp {
 
@@ -42,11 +44,15 @@ object lsp {
       }
 
   private def writeChunk(payload: Payload): Chunk[Byte] = {
-    val size = payload.array.size
-    val header = s"Content-Length: ${size}" + "\r\n" * 2
-    Chunk.array(header.getBytes()) ++ Chunk.array(payload.array)
+    val bytes = payload match {
+      case Data(array) => array
+      case NullPayload => nullArray
+    }
+    val header = s"Content-Length: ${bytes.size}" + "\r\n" * 2
+    Chunk.array(header.getBytes()) ++ Chunk.array(bytes)
   }
 
+  private val nullArray = "null".getBytes()
   private val returnByte = '\r'.toByte
   private val newlineByte = '\n'.toByte
 
