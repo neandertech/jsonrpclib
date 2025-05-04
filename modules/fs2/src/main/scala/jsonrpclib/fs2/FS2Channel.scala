@@ -47,6 +47,29 @@ trait FS2Channel[F[_]] extends Channel[F] {
 
 object FS2Channel {
 
+  def resource[F[_]: Concurrent](
+      bufferSize: Int = 2048,
+      cancelTemplate: Option[CancelTemplate] = None
+  ): Resource[F, FS2Channel[F]] = {
+    for {
+      supervisor <- Supervisor[F]
+      ref <- Resource.eval(Ref[F].of(State[F](Map.empty, Map.empty, Map.empty, Vector.empty, 0)))
+      queue <- Resource.eval(cats.effect.std.Queue.bounded[F, Message](bufferSize))
+      impl = new Impl(queue, ref, supervisor, cancelTemplate)
+
+      // Creating a bespoke endpoint to receive cancelation requests
+      maybeCancelEndpoint: Option[Endpoint[F]] = cancelTemplate.map { ct =>
+        implicit val codec: Codec[ct.C] = ct.codec
+        Endpoint[F](ct.method).notification[ct.C] { request =>
+          val callId = ct.toCallId(request)
+          impl.cancel(callId)
+        }
+      }
+      // mounting the cancelation endpoint
+      _ <- Resource.eval(maybeCancelEndpoint.traverse_(ep => impl.mountEndpoint(ep)))
+    } yield impl
+  }
+
   def apply[F[_]: Concurrent](
       bufferSize: Int = 2048,
       cancelTemplate: Option[CancelTemplate] = None
