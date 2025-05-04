@@ -105,7 +105,7 @@ val smithy4s = projectMatrix
     commonSettings,
     libraryDependencies ++= Seq(
       "co.fs2" %%% "fs2-core" % fs2Version,
-      "com.disneystreaming.smithy4s" %%% "smithy4s-json" % "0.17.4"
+      "com.disneystreaming.smithy4s" %%% "smithy4s-json" % smithy4sVersion.value
     )
   )
 

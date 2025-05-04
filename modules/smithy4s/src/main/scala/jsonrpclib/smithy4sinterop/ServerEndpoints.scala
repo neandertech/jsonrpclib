@@ -6,9 +6,12 @@ import cats.syntax.all._
 import jsonrpclib.Endpoint
 import jsonrpclib.fs2._
 import smithy4s.Service
-import smithy4s.http.json.JCodec
 import smithy4s.kinds.FunctorAlgebra
 import smithy4s.kinds.FunctorInterpreter
+import smithy4s.json.Json
+import smithy4s.schema.Schema
+import jsonrpclib.Codec._
+import com.github.plokhotnyuk.jsoniter_scala.core._
 
 object ServerEndpoints {
 
@@ -16,13 +19,20 @@ object ServerEndpoints {
       impl: FunctorAlgebra[Alg, F]
   )(implicit service: Service[Alg], F: MonadThrow[F]): List[Endpoint[F]] = {
     val interpreter: service.FunctorInterpreter[F] = service.toPolyFunction(impl)
-    service.endpoints.flatMap { smithy4sEndpoint =>
-      EndpointSpec.fromHints(smithy4sEndpoint.hints).map { endpointSpec =>
-        jsonRPCEndpoint(smithy4sEndpoint, endpointSpec, interpreter)
-      }
+    service.endpoints.toList.flatMap { smithy4sEndpoint =>
+      EndpointSpec
+        .fromHints(smithy4sEndpoint.hints)
+        .map { endpointSpec =>
+          jsonRPCEndpoint(smithy4sEndpoint, endpointSpec, interpreter)
+        }
+        .toList
     }
-
   }
+
+  private val jsoniterCodecGlobalCache = Json.jsoniter.createCache()
+
+  private def deriveJsonCodec[A](schema: Schema[A]): JsonCodec[A] =
+    Json.jsoniter.fromSchema(schema, jsoniterCodecGlobalCache)
 
   // TODO : codify errors at smithy level and handle them.
   def jsonRPCEndpoint[F[_]: MonadThrow, Op[_, _, _, _, _], I, E, O, SI, SO](
@@ -31,8 +41,8 @@ object ServerEndpoints {
       impl: FunctorInterpreter[Op, F]
   ): Endpoint[F] = {
 
-    implicit val inputCodec: JCodec[I] = JCodec.fromSchema(smithy4sEndpoint.input)
-    implicit val outputCodec: JCodec[O] = JCodec.fromSchema(smithy4sEndpoint.output)
+    implicit val inputCodec: JsonCodec[I] = deriveJsonCodec(smithy4sEndpoint.input)
+    implicit val outputCodec: JsonCodec[O] = deriveJsonCodec(smithy4sEndpoint.output)
 
     endpointSpec match {
       case EndpointSpec.Notification(methodName) =>

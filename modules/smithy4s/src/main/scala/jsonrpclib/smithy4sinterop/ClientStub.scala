@@ -1,14 +1,17 @@
 package jsonrpclib.smithy4sinterop
 
+import smithy4s.~>
 import cats.MonadThrow
 import jsonrpclib.fs2._
 import smithy4s.Service
-import smithy4s.http.json.JCodec
 import smithy4s.schema._
 import cats.effect.kernel.Async
 import smithy4s.kinds.PolyFunction5
 import smithy4s.ShapeId
 import cats.syntax.all._
+import smithy4s.json.Json
+import jsonrpclib.Codec._
+import com.github.plokhotnyuk.jsoniter_scala.core._
 
 object ClientStub {
 
@@ -28,7 +31,8 @@ private class ClientStub[Alg[_[_, _, _, _, _]], F[_]](val service: Service[Alg],
   def compile: F[service.Impl[F]] = precompileAll.map { stubCache =>
     val interpreter = new service.FunctorInterpreter[F] {
       def apply[I, E, O, SI, SO](op: service.Operation[I, E, O, SI, SO]): F[O] = {
-        val (input, smithy4sEndpoint) = service.endpoint(op)
+        val smithy4sEndpoint = service.endpoint(op)
+        val input = service.input(op)
         (stubCache(smithy4sEndpoint): F[I => F[O]]).flatMap { stub =>
           stub(input)
         }
@@ -40,7 +44,7 @@ private class ClientStub[Alg[_[_, _, _, _, _]], F[_]](val service: Service[Alg],
   private type Stub[I, E, O, SI, SO] = F[I => F[O]]
   private val precompileAll: F[PolyFunction5[service.Endpoint, Stub]] = {
     F.ref(Map.empty[ShapeId, Any]).flatMap { cache =>
-      service.endpoints
+      service.endpoints.toList
         .traverse_ { ep =>
           val shapeId = ep.id
           EndpointSpec.fromHints(ep.hints).liftTo[F](NotJsonRPCEndpoint(shapeId)).flatMap { epSpec =>
@@ -60,18 +64,23 @@ private class ClientStub[Alg[_[_, _, _, _, _]], F[_]](val service: Service[Alg],
     }
   }
 
+  private val jsoniterCodecGlobalCache = Json.jsoniter.createCache()
+
+  private def deriveJsonCodec[A](schema: Schema[A]): JsonCodec[A] =
+    Json.jsoniter.fromSchema(schema, jsoniterCodecGlobalCache)
+
   def jsonRPCStub[I, E, O, SI, SO](
       smithy4sEndpoint: service.Endpoint[I, E, O, SI, SO],
       endpointSpec: EndpointSpec
   ): I => F[O] = {
 
-    implicit val inputCodec: JCodec[I] = JCodec.fromSchema(smithy4sEndpoint.input)
-    implicit val outputCodec: JCodec[O] = JCodec.fromSchema(smithy4sEndpoint.output)
+    implicit val inputCodec: JsonCodec[I] = deriveJsonCodec(smithy4sEndpoint.input)
+    implicit val outputCodec: JsonCodec[O] = deriveJsonCodec(smithy4sEndpoint.output)
 
     endpointSpec match {
       case EndpointSpec.Notification(methodName) =>
         val coerce = coerceUnit[O](smithy4sEndpoint.output)
-        channel.notificationStub[I](methodName).andThen(_ *> coerce)
+        channel.notificationStub[I](methodName).andThen(f => f *> coerce)
       case EndpointSpec.Request(methodName) =>
         channel.simpleStub[I, O](methodName)
     }
@@ -79,10 +88,15 @@ private class ClientStub[Alg[_[_, _, _, _, _]], F[_]](val service: Service[Alg],
 
   case class NotJsonRPCEndpoint(shapeId: ShapeId) extends Throwable
   case object NotUnitReturnType extends Throwable
-  private def coerceUnit[A](schema: Schema[A]): F[A] =
-    schema match {
-      case Schema.PrimitiveSchema(_, _, Primitive.PUnit) => MonadThrow[F].unit
-      case _                                             => MonadThrow[F].raiseError[A](NotUnitReturnType)
+
+  private object CoerceUnitVisitor extends (Schema ~> F) {
+    def apply[A](schema: Schema[A]): F[A] = schema match {
+      case s @ Schema.StructSchema(_, _, _, make) if s.isUnit =>
+        MonadThrow[F].unit.asInstanceOf[F[A]]
+      case _ => MonadThrow[F].raiseError[A](NotUnitReturnType)
     }
+  }
+
+  private def coerceUnit[A](schema: Schema[A]): F[A] = CoerceUnitVisitor(schema)
 
 }
