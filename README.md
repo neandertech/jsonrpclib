@@ -38,4 +38,4 @@ override def ivyDeps = super.ivyDeps() ++ Agg(ivy"tech.neander::jsonrpclib-fs2::
 
 **/!\ Please be aware that this library is in its early days and offers strictly no guarantee with regards to backward compatibility**
 
-See the examples folder.
+See the modules/examples folder.
