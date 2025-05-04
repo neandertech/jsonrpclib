@@ -37,7 +37,99 @@ object versions {
 }
 import versions._
 
-trait CommonPlatformModule extends ScalaModule with PlatformScalaModule with mill.contrib.bloop.Bloop.Module {
+object core extends Module {
+  object jvm extends mill.Cross[JvmModule](scala213Version, scala3Version)
+  trait JvmModule extends CommonJvmModule {
+    def ivyDeps = {
+      Agg(
+        ivy"com.github.plokhotnyuk.jsoniter-scala::jsoniter-scala-macros::${jsoniterVersion}"
+      )
+    }
+
+    object test extends MunitTests
+  }
+
+  object js extends mill.Cross[JsModule](scala213Version, scala3Version)
+  trait JsModule extends CommonJSModule {
+    def ivyDeps = {
+      Agg(
+        ivy"com.github.plokhotnyuk.jsoniter-scala::jsoniter-scala-macros::${jsoniterVersion}"
+      )
+    }
+    object test extends MunitTests
+  }
+  object native extends mill.Cross[NativeModule](scala213Version, scala3Version)
+  trait NativeModule extends CommonNativeModule {
+    def ivyDeps = {
+      Agg(
+        ivy"com.github.plokhotnyuk.jsoniter-scala::jsoniter-scala-macros::${jsoniterVersion}"
+      )
+    }
+    object test extends MunitTests
+  }
+}
+
+object fs2 extends Module {
+
+  object jvm extends mill.Cross[JvmModule](Seq(scala213Version, scala3Version)) {}
+  trait JvmModule extends CommonJvmModule {
+    def ivyDeps = {
+      Agg(
+        ivy"co.fs2::fs2-core::${fs2Version}"
+      )
+    }
+    def moduleDeps = Seq(core.jvm())
+
+    object test extends WeaverTests {}
+  }
+
+  object js extends mill.Cross[JSModule](Seq(scala213Version, scala3Version)) {}
+  trait JSModule extends CommonJSModule {
+    def ivyDeps = {
+      Agg(
+        ivy"co.fs2::fs2-core::${fs2Version}"
+      )
+    }
+    def moduleDeps = Seq(core.js())
+
+    object test extends WeaverTests {}
+  }
+
+  object native extends mill.Cross[NativeModule](Seq(scala213Version, scala3Version)) {}
+  trait NativeModule extends CommonNativeModule {
+    def ivyDeps = {
+      Agg(
+        ivy"co.fs2::fs2-core::${fs2Version}"
+      )
+    }
+    def moduleDeps = Seq(core.native())
+
+    object test extends WeaverTests {}
+  }
+}
+
+object examples extends Module {
+
+  object server extends ScalaModule {
+    def ivyDeps = Agg(ivy"co.fs2::fs2-io:${fs2Version}")
+    def moduleDeps = Seq(fs2.jvm(scala213Version))
+    def scalaVersion = versions.scala213Version
+  }
+
+  object client extends ScalaModule {
+    def ivyDeps = Agg(ivy"co.fs2::fs2-io:$fs2Version")
+    def moduleDeps = Seq(fs2.jvm(scala213Version))
+    def scalaVersion = versions.scala213Version
+    def forkEnv: Target[Map[String, String]] = T {
+      val assembledServer = server.assembly()
+      super.forkEnv() ++ Map("SERVER_JAR" -> assembledServer.path.toString())
+    }
+  }
+}
+
+// COMMON SETUP
+
+trait CommonPlatformModule extends JsonRPCModule with PlatformScalaModule with mill.contrib.bloop.Bloop.Module {
   def sources = T.sources {
     super.sources() ++
       (platformScalaSuffix match {
@@ -117,313 +209,6 @@ trait CommonNativeModule extends ScalaNativeModule with CrossScalaModule with Co
     def ivyDeps = super.ivyDeps() ++ Agg(ivy"org.scalameta::munit::$munitVersion")
   }
 }
-
-object core extends Module {
-  object jvm extends mill.Cross[JvmModule](scala213Version, scala3Version)
-  trait JvmModule extends CommonJvmModule {
-    def ivyDeps = {
-      Agg(
-        ivy"com.github.plokhotnyuk.jsoniter-scala::jsoniter-scala-macros::${jsoniterVersion}"
-      )
-    }
-
-    object test extends MunitTests
-  }
-
-  object js extends mill.Cross[JsModule](scala213Version, scala3Version)
-  trait JsModule extends CommonJSModule {
-    def ivyDeps = {
-      Agg(
-        ivy"com.github.plokhotnyuk.jsoniter-scala::jsoniter-scala-macros::${jsoniterVersion}"
-      )
-    }
-    object test extends MunitTests
-  }
-  object native extends mill.Cross[NativeModule](scala213Version, scala3Version)
-  trait NativeModule extends CommonNativeModule {
-    object test extends MunitTests
-  }
-}
-
-object fs2 extends Module {
-  object jvm extends mill.Cross[JvmModule](Seq(scala213Version, scala3Version)) {}
-
-  trait JvmModule extends CommonJvmModule {
-    def ivyDeps = {
-      Agg(
-        ivy"co.fs2::fs2-core::${fs2Version}"
-      )
-    }
-    def moduleDeps = Seq(core.jvm())
-
-    object test extends WeaverTests {}
-  }
-}
-
-object examples extends Module {
-
-  object server extends ScalaModule {
-    def ivyDeps = Agg(ivy"co.fs2::fs2-io:${fs2Version}")
-    def moduleDeps = Seq(fs2.jvm(scala213Version))
-    def scalaVersion = versions.scala213Version
-  }
-
-  object client extends ScalaModule {
-    def ivyDeps = Agg(ivy"co.fs2::fs2-io:$fs2Version")
-    def moduleDeps = Seq(fs2.jvm(scala213Version))
-    def scalaVersion = versions.scala213Version
-    def forkEnv: Target[Map[String, String]] = T {
-      val assembledServer = server.assembly()
-      super.forkEnv() ++ Map("SERVER_JAR" -> assembledServer.path.toString())
-    }
-  }
-}
-
-// }
-
-// object core extends RPCCrossPlatformModule { cross =>
-//
-//   def crossPlatformIvyDeps: T[Agg[Dep]] = Agg(
-//     ivy"com.github.plokhotnyuk.jsoniter-scala::jsoniter-scala-macros::${jsoniterVersion}"
-//   )
-//
-//   object jvm extends mill.Cross[JvmModule](scala213, scala3)
-//   class JvmModule(cv: String) extends cross.JVM(cv) {
-//     object test extends MunitTests
-//   }
-//
-//   object js extends mill.Cross[JsModule](scala213, scala3)
-//   class JsModule(cv: String) extends cross.JS(cv) {
-//     object test extends MunitTests
-//   }
-//
-//   object native extends mill.Cross[NativeModule](scala213, scala3)
-//   class NativeModule(cv: String) extends cross.Native(cv) {
-//     object test extends MunitTests
-//   }
-// }
-//
-// object fs2 extends RPCCrossPlatformModule { cross =>
-//
-//   override def crossPlatformModuleDeps = Seq(core)
-//   def crossPlatformIvyDeps: T[Agg[Dep]] = Agg(
-//     ivy"co.fs2::fs2-core::${fs2Version}"
-//   )
-//
-//   object jvm extends mill.Cross[JvmModule](scala213, scala3)
-//   class JvmModule(cv: String) extends cross.JVM(cv) {
-//     object test extends WeaverTests
-//   }
-//
-//   object js extends mill.Cross[JsModule](scala213, scala3)
-//   class JsModule(cv: String) extends cross.JS(cv) {
-//     object test extends WeaverTests
-//   }
-//
-//   object native extends mill.Cross[NativeModule](scala213, scala3)
-//   class NativeModule(cv: String) extends cross.Native(cv) {
-//     object test extends WeaverTests
-//   }
-//
-// }
-//
-// object examples extends mill.define.Module {
-//
-//   object server extends ScalaModule {
-//     def ivyDeps = Agg(ivy"co.fs2::fs2-io:${fs2Version}")
-//     def moduleDeps = Seq(fs2.jvm(versions.scala213))
-//     def scalaVersion = versions.scala213Version
-//   }
-//
-//   object client extends ScalaModule {
-//     def ivyDeps = Agg(ivy"co.fs2::fs2-io:$fs2Version")
-//     def moduleDeps = Seq(fs2.jvm(versions.scala213))
-//     def scalaVersion = versions.scala213Version
-//     def forkEnv: Target[Map[String, String]] = T {
-//       val assembledServer = server.assembly()
-//       super.forkEnv() ++ Map("SERVER_JAR" -> assembledServer.path.toString())
-//     }
-//   }
-//
-// }
-
-// #############################################################################
-//  COMMON SETUP
-// #############################################################################
-
-// trait RPCCrossPlatformModule extends Module { shared =>
-//
-//   def artifactName = s"jsonrpclib-${millModuleSegments.parts.mkString("-")}"
-//   def crossPlatformIvyDeps = T { Agg.empty[Dep] }
-//   def crossPlatformModuleDeps: Seq[Module] = Seq()
-//   def crossPlatformTestModuleDeps: Seq[Module] = Seq()
-//
-//   class JVM(val crossVersion: String) extends PlatformSpecific {
-//     override def platformLabel: String = "jvm"
-//
-//     trait WeaverTests extends Tests {
-//       def ivyDeps = super.ivyDeps() ++ Agg(ivy"com.disneystreaming::weaver-cats::$weaverVersion")
-//       def testFramework = "weaver.framework.CatsEffect"
-//     }
-//
-//     trait MunitTests extends Tests with TestModule.Munit {
-//       def ivyDeps = super.ivyDeps() ++ Agg(ivy"org.scalameta::munit::$munitVersion")
-//     }
-//
-//     trait Tests extends super.Tests {
-//       override def sources = T.sources(computeSources(this).map(PathRef(_)))
-//       override def moduleDeps = super.moduleDeps ++ shared.crossPlatformTestModuleDeps.flatMap(matchingCross)
-//     }
-//   }
-//
-//   class JS(val crossVersion: String) extends PlatformSpecific with ScalaJSModule {
-//     override def platformLabel: String = "js"
-//     override def scalaJSVersion = versions.scalaJSVersion
-//
-//     override def scalacOptions = T {
-//       super.scalacOptions().filterNot(_ == "-Ywarn-unused:params")
-//     }
-//
-//     override def moduleKind = T(ModuleKind.CommonJSModule)
-//     override def skipIdea = true
-//
-//     trait WeaverTests extends Tests {
-//       def ivyDeps = super.ivyDeps() ++ Agg(ivy"com.disneystreaming::weaver-cats::$weaverVersion")
-//       def testFramework = "weaver.framework.CatsEffect"
-//     }
-//
-//     trait MunitTests extends Tests with TestModule.Munit {
-//       def ivyDeps = super.ivyDeps() ++ Agg(ivy"org.scalameta::munit::$munitVersion")
-//     }
-//
-//     trait Tests extends super.Tests with mill.contrib.Bloop.Module {
-//       override def sources = T.sources(computeSources(this).map(PathRef(_)))
-//       override def skipIdea = true
-//       override def skipBloop = true
-//       override def moduleDeps = super.moduleDeps ++ shared.crossPlatformTestModuleDeps.flatMap(matchingCross).collect {
-//         case m: ScalaJSModule => m
-//       }
-//     }
-//   }
-//
-//   class Native(val crossVersion: String) extends PlatformSpecific with ScalaNativeModule {
-//     override def platformLabel: String = "native"
-//     override def scalaNativeVersion = versions.scalaNativeVersion
-//     override def scalacOptions = T {
-//       super
-//         .scalacOptions()
-//         .filterNot { opts =>
-//           Seq(
-//             "-Ywarn-extra-implicit",
-//             "-Xlint:constant"
-//           ).contains(opts)
-//         }
-//         .filterNot(_.startsWith("-Ywarn-unused"))
-//     }
-//     override def skipIdea = true
-//     override def skipBloop = true
-//
-//     trait WeaverTests extends Tests {
-//       def ivyDeps = super.ivyDeps() ++ Agg(ivy"com.disneystreaming::weaver-cats::$weaverVersion")
-//       def testFramework = "weaver.framework.CatsEffect"
-//     }
-//
-//     trait MunitTests extends Tests with TestModule.Munit {
-//       def ivyDeps = super.ivyDeps() ++ Agg(ivy"org.scalameta::munit::$munitVersion")
-//     }
-//
-//     trait Tests extends super.Tests with mill.contrib.Bloop.Module {
-//       override def nativeLinkStubs = true
-//       override def skipIdea = true
-//       override def skipBloop = true
-//       override def sources = T.sources(computeSources(this).map(PathRef(_)))
-//       override def moduleDeps = super.moduleDeps ++ shared.crossPlatformTestModuleDeps.flatMap(matchingCross).collect {
-//         case m: ScalaNativeModule => m
-//       }
-//     }
-//   }
-//
-//   trait PlatformSpecific extends JsonRPCModule with mill.contrib.Bloop.Module { self =>
-//     def platformLabel: String
-//     def crossVersion: String
-//     override def scalaVersion = versions.crossMap(crossVersion)
-//
-//     override def millSourcePath = shared.millSourcePath
-//
-//     override def ivyDeps = super.ivyDeps() ++ shared.crossPlatformIvyDeps()
-//
-//     def samePlatform(module: Module): Boolean =
-//       self match {
-//         case _: ScalaJSModule     => module.isInstanceOf[ScalaJSModule]
-//         case _: ScalaNativeModule => module.isInstanceOf[ScalaNativeModule]
-//         case _ =>
-//           !(module.isInstanceOf[ScalaJSModule] || module
-//             .isInstanceOf[ScalaNativeModule])
-//       }
-//
-//     def sameScalaVersion(module: Module): Boolean = {
-//       // Don't know why, pattern matching didn't seem to work here
-//       module.isInstanceOf[PlatformSpecific] && (module.asInstanceOf[PlatformSpecific].crossVersion == self.crossVersion)
-//     }
-//
-//     def sameCross(module: Module) = samePlatform(module) && sameScalaVersion(module)
-//
-//     def matchingCross(module: Module): Seq[JsonRPCModule] = module match {
-//       case m: RPCCrossPlatformModule =>
-//         m.millModuleDirectChildren.collect {
-//           case cross: Cross[_] =>
-//             cross.millModuleDirectChildren.collect {
-//               case child: JsonRPCModule if sameCross(child) => child
-//             }
-//           case child: JsonRPCModule if sameCross(child) => Seq(child)
-//         }.flatten
-//       case _ => Seq()
-//     }
-//
-//     override def moduleDeps: Seq[JsonRPCModule] =
-//       shared.crossPlatformModuleDeps.flatMap(matchingCross)
-//
-//     override def artifactName = shared.artifactName
-//
-//     def computeSources(module: mill.define.Module): Seq[os.Path] = {
-//       val modulePath = module.millSourcePath
-//       module match {
-//         case _: ScalaJSModule =>
-//           Seq(
-//             modulePath / 'src,
-//             modulePath / s"src-js",
-//             modulePath / s"src-jvm-js",
-//             modulePath / s"src-js-native"
-//           )
-//         case _: ScalaNativeModule =>
-//           Seq(
-//             modulePath / 'src,
-//             modulePath / s"src-native",
-//             modulePath / s"src-jvm-native",
-//             modulePath / s"src-js-native"
-//           )
-//         case _ =>
-//           Seq(
-//             modulePath / 'src,
-//             modulePath / s"src-jvm",
-//             modulePath / s"src-jvm-js",
-//             modulePath / s"src-jvm-native"
-//           )
-//       }
-//     }
-//
-//     override def sources = T.sources(computeSources(self).map(PathRef(_)))
-//
-//     override def skipBloop = {
-//       self match {
-//         case _: ScalaJSModule     => true
-//         case _: ScalaNativeModule => true
-//         case _                    => false
-//       }
-//     } && { crossVersion != scala213 }
-//
-//   }
-// }
 
 trait JsonRPCModule extends ScalaModule with CiReleaseModule with scalafmt.ScalafmtModule {
   def scalafmt() = T.command(reformat())
