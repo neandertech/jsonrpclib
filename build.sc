@@ -37,17 +37,22 @@ object versions {
 }
 import versions._
 
-trait CommonJvmModule extends ScalaModule with CrossScalaModule with PlatformScalaModule {
+trait CommonPlatformModule extends ScalaModule with PlatformScalaModule with mill.contrib.bloop.Bloop.Module {
   def sources = T.sources {
     super.sources() ++
-    (platformScalaSuffix match {
-      case "jvm" => Seq(PathRef(millSourcePath / "src-jvm-native"))
-      case "native" => Seq(PathRef(millSourcePath / "src-js-native"), PathRef(millSourcePath / "src-jvm-native"))
-      case "js" => Seq(PathRef(millSourcePath / "src-js-native"))
-    })
+      (platformScalaSuffix match {
+        case "jvm"    => Seq(PathRef(millSourcePath / "src-jvm-native"))
+        case "native" => Seq(PathRef(millSourcePath / "src-js-native"), PathRef(millSourcePath / "src-jvm-native"))
+        case "js"     => Seq(PathRef(millSourcePath / "src-js-native"))
+      })
   }
+}
 
-  trait CommonTestModule extends ScalaTests with ScalaModule
+trait CommonTestModule0 extends ScalaModule with mill.contrib.bloop.Bloop.Module
+
+trait CommonJvmModule extends CrossScalaModule with CommonPlatformModule {
+
+  trait CommonTestModule extends ScalaTests with CommonTestModule0
 
   trait WeaverTests extends CommonTestModule {
     def ivyDeps = super.ivyDeps() ++ Agg(ivy"com.disneystreaming::weaver-cats::$weaverVersion")
@@ -56,12 +61,65 @@ trait CommonJvmModule extends ScalaModule with CrossScalaModule with PlatformSca
   trait MunitTests extends CommonTestModule with TestModule.Munit {
     def ivyDeps = super.ivyDeps() ++ Agg(ivy"org.scalameta::munit::$munitVersion")
   }
+}
 
+trait CommonJSModule extends ScalaJSModule with CrossScalaModule with CommonPlatformModule {
+  override def scalaJSVersion = "1.13.1"
+  override def scalacOptions = T {
+    super.scalacOptions().filterNot(_ == "-Ywarn-unused:params")
+  }
+
+  override def moduleKind = T(ModuleKind.CommonJSModule)
+  override def skipIdea = true
+
+  trait CommonTestModule extends ScalaJSTests with CommonTestModule0 {
+    override def skipIdea = true
+    override def skipBloop = true
+  }
+
+  trait WeaverTests extends CommonTestModule {
+    def ivyDeps = super.ivyDeps() ++ Agg(ivy"com.disneystreaming::weaver-cats::$weaverVersion")
+    def testFramework = "weaver.framework.CatsEffect"
+  }
+  trait MunitTests extends CommonTestModule with TestModule.Munit {
+    def ivyDeps = super.ivyDeps() ++ Agg(ivy"org.scalameta::munit::$munitVersion")
+  }
+}
+
+trait CommonNativeModule extends ScalaNativeModule with CrossScalaModule with CommonPlatformModule {
+  override def scalaNativeVersion = versions.scalaNativeVersion
+  override def scalacOptions = T {
+    super
+      .scalacOptions()
+      .filterNot { opts =>
+        Seq(
+          "-Ywarn-extra-implicit",
+          "-Xlint:constant"
+        ).contains(opts)
+      }
+      .filterNot(_.startsWith("-Ywarn-unused"))
+  }
+
+  override def skipIdea = true
+  override def skipBloop = true
+
+  trait CommonTestModule extends ScalaNativeTests with CommonTestModule0 {
+    override def nativeLinkStubs = true
+    override def skipIdea = true
+    override def skipBloop = true
+  }
+
+  trait WeaverTests extends CommonTestModule {
+    def ivyDeps = super.ivyDeps() ++ Agg(ivy"com.disneystreaming::weaver-cats::$weaverVersion")
+    def testFramework = "weaver.framework.CatsEffect"
+  }
+  trait MunitTests extends CommonTestModule with TestModule.Munit {
+    def ivyDeps = super.ivyDeps() ++ Agg(ivy"org.scalameta::munit::$munitVersion")
+  }
 }
 
 object core extends Module {
-  object jvm extends mill.Cross[JvmModule](Seq(scala213Version, scala3Version)) {}
-
+  object jvm extends mill.Cross[JvmModule](scala213Version, scala3Version)
   trait JvmModule extends CommonJvmModule {
     def ivyDeps = {
       Agg(
@@ -69,7 +127,21 @@ object core extends Module {
       )
     }
 
-    object test extends MunitTests {}
+    object test extends MunitTests
+  }
+
+  object js extends mill.Cross[JsModule](scala213Version, scala3Version)
+  trait JsModule extends CommonJSModule {
+    def ivyDeps = {
+      Agg(
+        ivy"com.github.plokhotnyuk.jsoniter-scala::jsoniter-scala-macros::${jsoniterVersion}"
+      )
+    }
+    object test extends MunitTests
+  }
+  object native extends mill.Cross[NativeModule](scala213Version, scala3Version)
+  trait NativeModule extends CommonNativeModule {
+    object test extends MunitTests
   }
 }
 
