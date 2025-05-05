@@ -4,8 +4,6 @@ import jsonrpclib.CallId
 import jsonrpclib.fs2._
 import cats.effect._
 import fs2.io._
-import jsonrpclib.Endpoint
-import cats.syntax.all._
 import test._ // smithy4s-generated package
 import jsonrpclib.smithy4sinterop.ClientStub
 import jsonrpclib.smithy4sinterop.ServerEndpoints
@@ -25,15 +23,21 @@ object ServerMain extends IOApp.Simple {
   def printErr(s: String): IO[Unit] = IO.consoleForIO.errorln(s)
 
   def run: IO[Unit] = {
-    val run = for {
-      channel <- FS2Channel[IO](cancelTemplate = Some(cancelEndpoint))
-      testClient <- ClientStub.stream(TestClient, channel)
-      _ <- channel.withEndpointsStream(ServerEndpoints(new ServerImpl(testClient)))
-      _ <- fs2.Stream
-        .eval(IO.never) // running the server forever
-        .concurrently(stdin[IO](512).through(lsp.decodeMessages).through(channel.inputOrBounce))
-        .concurrently(channel.output.through(lsp.encodeMessages).through(stdout[IO]))
-    } yield {}
+    val run =
+      FS2Channel[IO](cancelTemplate = Some(cancelEndpoint))
+        .flatMap { channel =>
+          ClientStub
+            .stream(TestClient, channel)
+            .flatMap { testClient =>
+              channel.withEndpointsStream(ServerEndpoints(new ServerImpl(testClient)))
+            }
+        }
+        .flatMap { channel =>
+          fs2.Stream
+            .eval(IO.never) // running the server forever
+            .concurrently(stdin[IO](512).through(lsp.decodeMessages).through(channel.inputOrBounce))
+            .concurrently(channel.output.through(lsp.encodeMessages).through(stdout[IO]))
+        }
 
     // Using errorln as stdout is used by the RPC channel
     printErr("Starting server") >> run.compile.drain.guarantee(printErr("Terminating server"))
