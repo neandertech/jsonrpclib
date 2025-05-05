@@ -77,15 +77,9 @@ val fs2 = projectMatrix
 
 val smithy = projectMatrix
   .in(file("modules") / "smithy")
-  // TODO
-  // .jvmPlatform(jvmScalaVersions)
-  // .jsPlatform(jsScalaVersions)
-  // .nativePlatform(nativeScalaVersions)
-  .jvmPlatform(
-    autoScalaLibrary = false,
-    scalaVersions = Seq.empty,
-    settings = Seq()
-  )
+  .jvmPlatform(jvmScalaVersions)
+  .jsPlatform(jsScalaVersions)
+  .nativePlatform(nativeScalaVersions)
   .disablePlugins(AssemblyPlugin, MimaPlugin)
   .settings(
     name := "jsonrpclib-smithy"
@@ -99,7 +93,7 @@ val smithy4s = projectMatrix
   .disablePlugins(AssemblyPlugin)
   .enablePlugins(Smithy4sCodegenPlugin)
   .dependsOn(fs2)
-  .dependsOn(smithy.projectRefs.head)
+  .dependsOn(smithy)
   .settings(
     name := "jsonrpclib-smithy4s",
     commonSettings,
