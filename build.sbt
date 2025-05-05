@@ -103,6 +103,7 @@ val smithy4s = projectMatrix
   .settings(
     name := "jsonrpclib-smithy4s",
     commonSettings,
+    mimaPreviousArtifacts := Set.empty,
     libraryDependencies ++= Seq(
       "co.fs2" %%% "fs2-core" % fs2Version,
       "com.disneystreaming.smithy4s" %%% "smithy4s-json" % smithy4sVersion.value
@@ -162,7 +163,13 @@ val exampleSmithyServer = projectMatrix
     publish / skip := true,
     libraryDependencies ++= Seq(
       "co.fs2" %%% "fs2-io" % fs2Version
-    )
+    ),
+    assembly / assemblyMergeStrategy := {
+      case PathList("META-INF", "smithy", _*)           => MergeStrategy.concat
+      case PathList("jsonrpclib", "package.class")      => MergeStrategy.first
+      case PathList("META-INF", xs @ _*) if xs.nonEmpty => MergeStrategy.discard
+      case x                                            => MergeStrategy.first
+    }
   )
   .disablePlugins(MimaPlugin)
 
@@ -183,7 +190,7 @@ val exampleSmithyClient = projectMatrix
       "co.fs2" %%% "fs2-io" % fs2Version
     )
   )
-  .disablePlugins(MimaPlugin)
+  .disablePlugins(MimaPlugin, AssemblyPlugin)
 
 val root = project
   .in(file("."))

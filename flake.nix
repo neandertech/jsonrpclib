@@ -19,7 +19,7 @@
       perSystem = { system, config, pkgs, ... }:
         {
           devShells.default = pkgs.mkShell {
-            packages = [ pkgs.openjdk21 pkgs.scalafmt pkgs.sbt pkgs.clang pkgs.glibc.dev ];
+            packages = [ pkgs.openjdk21 pkgs.scalafmt pkgs.sbt pkgs.clang pkgs.glibc.dev pkgs.nodejs_23];
             inputsFrom = [
               config.treefmt.build.devShell
             ];
