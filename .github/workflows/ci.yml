@@ -5,6 +5,7 @@ on:
     branches: ["*"]
   push:
     branches: ["main"]
+    tags: ["v*"]
 
 concurrency:
   group: ci-${{ github.ref }}
