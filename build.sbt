@@ -24,6 +24,7 @@ val nativeScalaVersions = allScalaVersions
 
 val fs2Version = "3.12.0"
 
+ThisBuild / versionScheme := Some("early-semver")
 ThisBuild / tpolecatOptionsMode := DevMode
 
 val commonSettings = Seq(
