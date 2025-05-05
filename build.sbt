@@ -95,7 +95,7 @@ val smithy4s = projectMatrix
   .in(file("modules") / "smithy4s")
   .jvmPlatform(jvmScalaVersions)
   .jsPlatform(jsScalaVersions)
-  .nativePlatform(nativeScalaVersions)
+  .nativePlatform(Seq(scala3))
   .disablePlugins(AssemblyPlugin)
   .enablePlugins(Smithy4sCodegenPlugin)
   .dependsOn(fs2)
