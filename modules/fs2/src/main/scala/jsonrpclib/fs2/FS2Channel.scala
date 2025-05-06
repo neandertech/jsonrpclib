@@ -47,14 +47,14 @@ trait FS2Channel[F[_]] extends Channel[F] {
 
 object FS2Channel {
 
-  def apply[F[_]: Concurrent](
+  def resource[F[_]: Concurrent](
       bufferSize: Int = 2048,
       cancelTemplate: Option[CancelTemplate] = None
-  ): Stream[F, FS2Channel[F]] = {
+  ): Resource[F, FS2Channel[F]] = {
     for {
-      supervisor <- Stream.resource(Supervisor[F])
-      ref <- Ref[F].of(State[F](Map.empty, Map.empty, Map.empty, Vector.empty, 0)).toStream
-      queue <- cats.effect.std.Queue.bounded[F, Message](bufferSize).toStream
+      supervisor <- Supervisor[F]
+      ref <- Resource.eval(Ref[F].of(State[F](Map.empty, Map.empty, Map.empty, Vector.empty, 0)))
+      queue <- Resource.eval(cats.effect.std.Queue.bounded[F, Message](bufferSize))
       impl = new Impl(queue, ref, supervisor, cancelTemplate)
 
       // Creating a bespoke endpoint to receive cancelation requests
@@ -66,9 +66,14 @@ object FS2Channel {
         }
       }
       // mounting the cancelation endpoint
-      _ <- maybeCancelEndpoint.traverse_(ep => impl.mountEndpoint(ep)).toStream
+      _ <- Resource.eval(maybeCancelEndpoint.traverse_(ep => impl.mountEndpoint(ep)))
     } yield impl
   }
+
+  def apply[F[_]: Concurrent](
+      bufferSize: Int = 2048,
+      cancelTemplate: Option[CancelTemplate] = None
+  ): Stream[F, FS2Channel[F]] = Stream.resource(resource(bufferSize, cancelTemplate))
 
   private case class State[F[_]](
       runningCalls: Map[CallId, Fiber[F, Throwable, Unit]],
