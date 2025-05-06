@@ -80,8 +80,9 @@ val smithy = projectMatrix
   .in(file("modules") / "smithy")
   .jvmPlatform(false)
   .disablePlugins(AssemblyPlugin, MimaPlugin)
+  .enablePlugins(SmithyTraitCodegenPlugin)
   .settings(
-    name := "jsonrpclib-smithy"
+    name := "jsonrpclib-smithy",
   )
 
 lazy val buildTimeProtocolDependency =
