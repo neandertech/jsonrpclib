@@ -17,6 +17,7 @@ inThisBuild(
 
 val scala213 = "2.13.16"
 val scala3 = "3.3.5"
+val jdkVersion = 11
 val allScalaVersions = List(scala213, scala3)
 val jvmScalaVersions = allScalaVersions
 val jsScalaVersions = allScalaVersions
@@ -34,16 +35,27 @@ val commonSettings = Seq(
   mimaPreviousArtifacts := Set(
     organization.value %%% name.value % "0.0.7"
   ),
-  scalacOptions += "-java-output-version:11"
+  scalacOptions ++= {
+    CrossVersion.partialVersion(scalaVersion.value) match {
+      case Some((2, _)) => Seq(s"-target:jvm-$jdkVersion")
+      case _            => Seq(s"-java-output-version:$jdkVersion")
+    }
+  }
+)
+
+val commonJvmSettings = Seq(
+  javacOptions ++= Seq("--release", jdkVersion.toString)
 )
 
 val core = projectMatrix
   .in(file("modules") / "core")
   .jvmPlatform(
     jvmScalaVersions,
-    Test / unmanagedSourceDirectories ++= Seq(
-      (projectMatrixBaseDirectory.value / "src" / "test" / "scalajvm-native").getAbsoluteFile
-    )
+    Seq(
+      Test / unmanagedSourceDirectories ++= Seq(
+        (projectMatrixBaseDirectory.value / "src" / "test" / "scalajvm-native").getAbsoluteFile
+      )
+    ) ++ commonJvmSettings
   )
   .jsPlatform(jsScalaVersions)
   .nativePlatform(
@@ -63,7 +75,7 @@ val core = projectMatrix
 
 val fs2 = projectMatrix
   .in(file("modules") / "fs2")
-  .jvmPlatform(jvmScalaVersions)
+  .jvmPlatform(jvmScalaVersions, commonJvmSettings)
   .jsPlatform(jsScalaVersions)
   .nativePlatform(nativeScalaVersions)
   .disablePlugins(AssemblyPlugin)
@@ -83,6 +95,7 @@ val smithy = projectMatrix
   .enablePlugins(SmithyTraitCodegenPlugin)
   .settings(
     name := "jsonrpclib-smithy",
+    commonJvmSettings
   )
 
 lazy val buildTimeProtocolDependency =
@@ -103,7 +116,7 @@ lazy val buildTimeProtocolDependency =
 
 val smithy4s = projectMatrix
   .in(file("modules") / "smithy4s")
-  .jvmPlatform(jvmScalaVersions)
+  .jvmPlatform(jvmScalaVersions, commonJvmSettings)
   .jsPlatform(jsScalaVersions)
   .nativePlatform(Seq(scala3))
   .disablePlugins(AssemblyPlugin)
@@ -122,7 +135,7 @@ val smithy4s = projectMatrix
 
 val exampleServer = projectMatrix
   .in(file("modules") / "examples/server")
-  .jvmPlatform(List(scala213))
+  .jvmPlatform(List(scala213), commonJvmSettings)
   .dependsOn(fs2)
   .settings(
     commonSettings,
@@ -140,7 +153,7 @@ val exampleClient = projectMatrix
     Seq(
       fork := true,
       envVars += "SERVER_JAR" -> (exampleServer.jvm(scala213) / assembly).value.toString
-    )
+    ) ++ commonJvmSettings
   )
   .disablePlugins(AssemblyPlugin)
   .dependsOn(fs2)
@@ -155,7 +168,7 @@ val exampleClient = projectMatrix
 
 val exampleSmithyShared = projectMatrix
   .in(file("modules") / "examples/smithyShared")
-  .jvmPlatform(List(scala213))
+  .jvmPlatform(List(scala213), commonJvmSettings)
   .dependsOn(smithy4s)
   .enablePlugins(Smithy4sCodegenPlugin)
   .settings(
@@ -167,7 +180,7 @@ val exampleSmithyShared = projectMatrix
 
 val exampleSmithyServer = projectMatrix
   .in(file("modules") / "examples/smithyServer")
-  .jvmPlatform(List(scala213))
+  .jvmPlatform(List(scala213), commonJvmSettings)
   .dependsOn(exampleSmithyShared)
   .settings(
     commonSettings,
@@ -191,7 +204,7 @@ val exampleSmithyClient = projectMatrix
     Seq(
       fork := true,
       envVars += "SERVER_JAR" -> (exampleSmithyServer.jvm(scala213) / assembly).value.toString
-    )
+    ) ++ commonJvmSettings
   )
   .dependsOn(exampleSmithyShared)
   .settings(
