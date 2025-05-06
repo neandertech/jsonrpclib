@@ -78,13 +78,27 @@ val fs2 = projectMatrix
 
 val smithy = projectMatrix
   .in(file("modules") / "smithy")
-  .jvmPlatform(jvmScalaVersions)
-  .jsPlatform(jsScalaVersions)
-  .nativePlatform(nativeScalaVersions)
+  .jvmPlatform(false)
   .disablePlugins(AssemblyPlugin, MimaPlugin)
   .settings(
     name := "jsonrpclib-smithy"
   )
+
+lazy val buildTimeProtocolDependency =
+  /** By default, smithy4sInternalDependenciesAsJars doesn't contain the jars in the "smithy4s" configuration. We have
+    * to add them manually - this is the equivalent of a "% Smithy4s"-scoped dependency.
+    *
+    * Ideally, this would be
+    * {{{
+    * (Compile / smithy4sInternalDependenciesAsJars) ++=
+    *   Smithy4s / smithy4sInternalDependenciesAsJars).value.map(_.data)
+    * }}}
+    *
+    * but that doesn't work because the Smithy4s configuration doesn't extend from Compile so it doesn't have the
+    * `internalDependencyAsJars` setting.
+    */
+  Compile / smithy4sInternalDependenciesAsJars ++=
+    (smithy.jvm(autoScalaLibrary = false) / Compile / fullClasspathAsJars).value.map(_.data)
 
 val smithy4s = projectMatrix
   .in(file("modules") / "smithy4s")
@@ -94,7 +108,6 @@ val smithy4s = projectMatrix
   .disablePlugins(AssemblyPlugin)
   .enablePlugins(Smithy4sCodegenPlugin)
   .dependsOn(fs2)
-  .dependsOn(smithy)
   .settings(
     name := "jsonrpclib-smithy4s",
     commonSettings,
@@ -102,7 +115,8 @@ val smithy4s = projectMatrix
     libraryDependencies ++= Seq(
       "co.fs2" %%% "fs2-core" % fs2Version,
       "com.disneystreaming.smithy4s" %%% "smithy4s-json" % smithy4sVersion.value
-    )
+    ),
+    buildTimeProtocolDependency
   )
 
 val exampleServer = projectMatrix
@@ -145,7 +159,8 @@ val exampleSmithyShared = projectMatrix
   .enablePlugins(Smithy4sCodegenPlugin)
   .settings(
     commonSettings,
-    publish / skip := true
+    publish / skip := true,
+    buildTimeProtocolDependency
   )
   .disablePlugins(MimaPlugin)
 
