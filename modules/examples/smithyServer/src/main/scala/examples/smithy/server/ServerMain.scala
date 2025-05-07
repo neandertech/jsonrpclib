@@ -24,13 +24,11 @@ object ServerMain extends IOApp.Simple {
 
   def run: IO[Unit] = {
     val run =
-      FS2Channel[IO](cancelTemplate = Some(cancelEndpoint))
+      FS2Channel
+        .stream[IO](cancelTemplate = Some(cancelEndpoint))
         .flatMap { channel =>
-          ClientStub
-            .stream(TestClient, channel)
-            .flatMap { testClient =>
-              channel.withEndpointsStream(ServerEndpoints(new ServerImpl(testClient)))
-            }
+          val testClient = ClientStub(TestClient, channel)
+          channel.withEndpointsStream(ServerEndpoints(new ServerImpl(testClient)))
         }
         .flatMap { channel =>
           fs2.Stream

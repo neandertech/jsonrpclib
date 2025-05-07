@@ -2,8 +2,8 @@ package jsonrpclib.smithy4sinterop
 
 import smithy4s.Hints
 
-sealed trait EndpointSpec
-object EndpointSpec {
+private[smithy4sinterop] sealed trait EndpointSpec
+private[smithy4sinterop] object EndpointSpec {
   case class Notification(methodName: String) extends EndpointSpec
   case class Request(methodName: String) extends EndpointSpec
 

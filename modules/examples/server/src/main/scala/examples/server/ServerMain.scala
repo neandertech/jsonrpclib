@@ -28,7 +28,8 @@ object ServerMain extends IOApp.Simple {
   def run: IO[Unit] = {
     // Using errorln as stdout is used by the RPC channel
     IO.consoleForIO.errorln("Starting server") >>
-      FS2Channel[IO](cancelTemplate = Some(cancelEndpoint))
+      FS2Channel
+        .stream[IO](cancelTemplate = Some(cancelEndpoint))
         .flatMap(_.withEndpointStream(increment)) // mounting an endpoint onto the channel
         .flatMap(channel =>
           fs2.Stream

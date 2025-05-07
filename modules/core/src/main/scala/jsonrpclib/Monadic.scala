@@ -8,9 +8,13 @@ trait Monadic[F[_]] {
   def doPure[A](a: A): F[A]
   def doAttempt[A](fa: F[A]): F[Either[Throwable, A]]
   def doRaiseError[A](e: Throwable): F[A]
+  def doMap[A, B](fa: F[A])(f: A => B): F[B] = doFlatMap(fa)(a => doPure(f(a)))
+  def doVoid[A](fa: F[A]): F[Unit] = doMap(fa)(_ => ())
 }
 
 object Monadic {
+  def apply[F[_]](implicit F: Monadic[F]): Monadic[F] = F
+
   implicit def monadicFuture(implicit ec: ExecutionContext): Monadic[Future] = new Monadic[Future] {
     def doFlatMap[A, B](fa: Future[A])(f: A => Future[B]): Future[B] = fa.flatMap(f)
 
@@ -19,5 +23,7 @@ object Monadic {
     def doAttempt[A](fa: Future[A]): Future[Either[Throwable, A]] = fa.map(Right(_)).recover(Left(_))
 
     def doRaiseError[A](e: Throwable): Future[A] = Future.failed(e)
+
+    override def doMap[A, B](fa: Future[A])(f: A => B): Future[B] = fa.map(f)
   }
 }

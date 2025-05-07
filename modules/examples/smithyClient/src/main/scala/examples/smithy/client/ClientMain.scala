@@ -32,11 +32,11 @@ object SmithyClientMain extends IOApp.Simple {
       // Starting the server
       rp <- ChildProcess.spawn[IO]("java", "-jar", serverJar)
       // Creating a channel that will be used to communicate to the server
-      fs2Channel <- FS2Channel[IO](cancelTemplate = cancelEndpoint.some)
+      fs2Channel <- FS2Channel.stream[IO](cancelTemplate = cancelEndpoint.some)
       // Mounting our implementation of the generated interface onto the channel
       _ <- fs2Channel.withEndpointsStream(ServerEndpoints(Client))
       // Creating stubs to talk to the remote server
-      server: TestServer[IO] <- ClientStub.stream(test.TestServer, fs2Channel)
+      server: TestServer[IO] = ClientStub(test.TestServer, fs2Channel)
       _ <- Stream(())
         .concurrently(fs2Channel.output.through(lsp.encodeMessages).through(rp.stdin))
         .concurrently(rp.stdout.through(lsp.decodeMessages).through(fs2Channel.inputOrBounce))
