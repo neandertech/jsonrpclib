@@ -70,7 +70,13 @@ object FS2Channel {
     } yield impl
   }
 
+  @deprecated("use stream or resource", "0.0.9")
   def apply[F[_]: Concurrent](
+      bufferSize: Int = 2048,
+      cancelTemplate: Option[CancelTemplate] = None
+  ): Stream[F, FS2Channel[F]] = stream(bufferSize, cancelTemplate)
+
+  def stream[F[_]: Concurrent](
       bufferSize: Int = 2048,
       cancelTemplate: Option[CancelTemplate] = None
   ): Stream[F, FS2Channel[F]] = Stream.resource(resource(bufferSize, cancelTemplate))

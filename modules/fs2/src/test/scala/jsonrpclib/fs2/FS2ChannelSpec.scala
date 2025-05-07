@@ -30,8 +30,8 @@ object FS2ChannelSpec extends SimpleIOSuite {
   def setup(cancelTemplate: CancelTemplate, endpoints: Endpoint[IO]*) = setupAux(endpoints, Some(cancelTemplate))
   def setupAux(endpoints: Seq[Endpoint[IO]], cancelTemplate: Option[CancelTemplate]): Stream[IO, ClientSideChannel] = {
     for {
-      serverSideChannel <- FS2Channel[IO](cancelTemplate = cancelTemplate)
-      clientSideChannel <- FS2Channel[IO](cancelTemplate = cancelTemplate)
+      serverSideChannel <- FS2Channel.stream[IO](cancelTemplate = cancelTemplate)
+      clientSideChannel <- FS2Channel.stream[IO](cancelTemplate = cancelTemplate)
       _ <- serverSideChannel.withEndpointsStream(endpoints)
       _ <- Stream(())
         .concurrently(clientSideChannel.output.through(serverSideChannel.input))

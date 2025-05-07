@@ -93,7 +93,7 @@ val smithy4s = projectMatrix
   .nativePlatform(Seq(scala3))
   .disablePlugins(AssemblyPlugin)
   .enablePlugins(Smithy4sCodegenPlugin)
-  .dependsOn(fs2)
+  .dependsOn(core)
   .dependsOn(smithy)
   .settings(
     name := "jsonrpclib-smithy4s",
@@ -141,7 +141,7 @@ val exampleClient = projectMatrix
 val exampleSmithyShared = projectMatrix
   .in(file("modules") / "examples/smithyShared")
   .jvmPlatform(List(scala213))
-  .dependsOn(smithy4s)
+  .dependsOn(smithy4s, fs2)
   .enablePlugins(Smithy4sCodegenPlugin)
   .settings(
     commonSettings,

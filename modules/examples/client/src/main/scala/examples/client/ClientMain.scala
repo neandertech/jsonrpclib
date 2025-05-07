@@ -32,7 +32,7 @@ object ClientMain extends IOApp.Simple {
       // Starting the server
       rp <- fs2.Stream.resource(Processes[IO].spawn(process.ProcessBuilder("java", "-jar", serverJar)))
       // Creating a channel that will be used to communicate to the server
-      fs2Channel <- FS2Channel[IO](cancelTemplate = cancelEndpoint.some)
+      fs2Channel <- FS2Channel.stream[IO](cancelTemplate = cancelEndpoint.some)
       _ <- Stream(())
         .concurrently(fs2Channel.output.through(lsp.encodeMessages).through(rp.stdin))
         .concurrently(rp.stdout.through(lsp.decodeMessages).through(fs2Channel.inputOrBounce))
