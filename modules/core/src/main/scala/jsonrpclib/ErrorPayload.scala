@@ -1,7 +1,7 @@
 package jsonrpclib
 
-import com.github.plokhotnyuk.jsoniter_scala.core.JsonValueCodec
-import com.github.plokhotnyuk.jsoniter_scala.macros.JsonCodecMaker
+import io.circe.{Decoder, Encoder}
+import io.circe.generic.semiauto._
 
 case class ErrorPayload(code: Int, message: String, data: Option[Payload]) extends Throwable {
   override def getMessage(): String = s"JsonRPC Error $code: $message"
@@ -9,7 +9,6 @@ case class ErrorPayload(code: Int, message: String, data: Option[Payload]) exten
 
 object ErrorPayload {
 
-  implicit val rawMessageStubJsonValueCodecs: JsonValueCodec[ErrorPayload] =
-    JsonCodecMaker.make
-
+  implicit val decoder: Decoder[ErrorPayload] = deriveDecoder
+  implicit val encoder: Encoder[ErrorPayload] = deriveEncoder
 }
