@@ -138,7 +138,7 @@ object lsp {
             }
             continue = false
           } else {
-            bb.put(byte)
+            val _ = bb.put(byte)
           }
         }
         if (newState != null) {
