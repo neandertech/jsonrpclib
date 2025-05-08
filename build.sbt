@@ -69,8 +69,8 @@ val core = projectMatrix
     name := "jsonrpclib-core",
     commonSettings,
     libraryDependencies ++= Seq(
-      "com.github.plokhotnyuk.jsoniter-scala" %%% "jsoniter-scala-circe" % "2.35.2",
-      "io.circe" %%% "circe-generic" % "0.14.13"
+      "com.github.plokhotnyuk.jsoniter-scala" %%% "jsoniter-scala-circe" % "2.30.2",
+      "io.circe" %%% "circe-generic" % "0.14.7"
     )
   )
 
