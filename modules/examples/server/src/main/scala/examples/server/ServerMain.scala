@@ -4,8 +4,8 @@ import jsonrpclib.CallId
 import jsonrpclib.fs2._
 import cats.effect._
 import fs2.io._
-import com.github.plokhotnyuk.jsoniter_scala.core.JsonValueCodec
-import com.github.plokhotnyuk.jsoniter_scala.macros.JsonCodecMaker
+import io.circe.{Decoder, Encoder}
+import io.circe.generic.semiauto._
 import jsonrpclib.Endpoint
 
 object ServerMain extends IOApp.Simple {
@@ -16,7 +16,8 @@ object ServerMain extends IOApp.Simple {
   // Creating a datatype that'll serve as a request (and response) of an endpoint
   case class IntWrapper(value: Int)
   object IntWrapper {
-    implicit val jcodec: JsonValueCodec[IntWrapper] = JsonCodecMaker.make
+    implicit val decoder: Decoder[IntWrapper] = deriveDecoder
+    implicit val encoder: Encoder[IntWrapper] = deriveEncoder
   }
 
   // Implementing an incrementation endpoint
