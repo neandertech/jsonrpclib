@@ -69,8 +69,7 @@ val core = projectMatrix
     name := "jsonrpclib-core",
     commonSettings,
     libraryDependencies ++= Seq(
-      "com.github.plokhotnyuk.jsoniter-scala" %%% "jsoniter-scala-circe" % "2.30.2",
-      "io.circe" %%% "circe-generic" % "0.14.7"
+      "com.github.plokhotnyuk.jsoniter-scala" %%% "jsoniter-scala-circe" % "2.30.2"
     )
   )
 
@@ -85,7 +84,8 @@ val fs2 = projectMatrix
     name := "jsonrpclib-fs2",
     commonSettings,
     libraryDependencies ++= Seq(
-      "co.fs2" %%% "fs2-core" % fs2Version
+      "co.fs2" %%% "fs2-core" % fs2Version,
+      "io.circe" %%% "circe-generic" % "0.14.7" % Test
     )
   )
 
@@ -142,7 +142,8 @@ val exampleServer = projectMatrix
     commonSettings,
     publish / skip := true,
     libraryDependencies ++= Seq(
-      "co.fs2" %%% "fs2-io" % fs2Version
+      "co.fs2" %%% "fs2-io" % fs2Version,
+      "io.circe" %%% "circe-generic" % "0.14.7"
     )
   )
   .disablePlugins(MimaPlugin)
@@ -162,7 +163,8 @@ val exampleClient = projectMatrix
     commonSettings,
     publish / skip := true,
     libraryDependencies ++= Seq(
-      "co.fs2" %%% "fs2-io" % fs2Version
+      "co.fs2" %%% "fs2-io" % fs2Version,
+      "io.circe" %%% "circe-generic" % "0.14.7"
     )
   )
   .disablePlugins(MimaPlugin)

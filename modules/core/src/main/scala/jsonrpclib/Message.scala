@@ -2,7 +2,6 @@ package jsonrpclib
 
 import io.circe.{Decoder, Encoder}
 import io.circe.syntax._
-import io.circe.generic.semiauto._
 
 sealed trait Message { def maybeCallId: Option[CallId] }
 sealed trait InputMessage extends Message { def method: String }
@@ -20,11 +19,6 @@ object InputMessage {
     def maybeCallId: Option[CallId] = None
   }
 
-  implicit val requestDecoder: Decoder[RequestMessage] = deriveDecoder
-  implicit val requestEncoder: Encoder[RequestMessage] = deriveEncoder
-
-  implicit val notificationDecoder: Decoder[NotificationMessage] = deriveDecoder
-  implicit val notificationEncoder: Encoder[NotificationMessage] = deriveEncoder
 }
 
 object OutputMessage {
@@ -34,11 +28,6 @@ object OutputMessage {
   case class ErrorMessage(callId: CallId, payload: ErrorPayload) extends OutputMessage
   case class ResponseMessage(callId: CallId, data: Payload) extends OutputMessage
 
-  implicit val errorDecoder: Decoder[ErrorMessage] = deriveDecoder
-  implicit val errorEncoder: Encoder[ErrorMessage] = deriveEncoder
-
-  implicit val responseDecoder: Decoder[ResponseMessage] = deriveDecoder
-  implicit val responseEncoder: Encoder[ResponseMessage] = deriveEncoder
 }
 
 object Message {
