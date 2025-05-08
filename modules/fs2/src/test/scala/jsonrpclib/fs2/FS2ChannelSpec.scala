@@ -2,11 +2,11 @@ package jsonrpclib.fs2
 
 import cats.effect.IO
 import cats.syntax.all._
-import com.github.plokhotnyuk.jsoniter_scala.core.JsonValueCodec
-import com.github.plokhotnyuk.jsoniter_scala.macros.JsonCodecMaker
 import fs2.Stream
 import jsonrpclib._
 import weaver._
+import io.circe.{Decoder, Encoder}
+import io.circe.generic.semiauto._
 
 import scala.concurrent.duration._
 
@@ -14,12 +14,14 @@ object FS2ChannelSpec extends SimpleIOSuite {
 
   case class IntWrapper(int: Int)
   object IntWrapper {
-    implicit val jcodec: JsonValueCodec[IntWrapper] = JsonCodecMaker.make
+    implicit val decoder: Decoder[IntWrapper] = deriveDecoder
+    implicit val encoder: Encoder[IntWrapper] = deriveEncoder
   }
 
   case class CancelRequest(callId: CallId)
   object CancelRequest {
-    implicit val jcodec: JsonValueCodec[CancelRequest] = JsonCodecMaker.make
+    implicit val decoder: Decoder[CancelRequest] = deriveDecoder
+    implicit val encoder: Encoder[CancelRequest] = deriveEncoder
   }
 
   def testRes(name: TestName)(run: Stream[IO, Expectations]): Unit =
