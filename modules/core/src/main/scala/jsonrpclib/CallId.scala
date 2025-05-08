@@ -8,7 +8,6 @@ object CallId {
   final case class StringId(string: String) extends CallId
   case object NullId extends CallId
 
-  // Circe Decoder
   implicit val callIdDecoder: Decoder[CallId] = Decoder.instance { cursor =>
     cursor.value.fold(
       jsonNull = Right(NullId),
@@ -20,7 +19,6 @@ object CallId {
     )
   }
 
-  // Circe Encoder
   implicit val callIdEncoder: Encoder[CallId] = Encoder.instance {
     case NumberId(n)   => Json.fromLong(n)
     case StringId(str) => Json.fromString(str)
