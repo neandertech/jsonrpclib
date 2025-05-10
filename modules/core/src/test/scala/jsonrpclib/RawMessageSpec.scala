@@ -5,15 +5,20 @@ import jsonrpclib.internals._
 import com.github.plokhotnyuk.jsoniter_scala.core._
 import jsonrpclib.CallId.NumberId
 import jsonrpclib.OutputMessage.ResponseMessage
+import io.circe.Json
+import com.github.plokhotnyuk.jsoniter_scala.circe.JsoniterScalaCodec._
 
 object RawMessageSpec extends FunSuite {
   test("json parsing with null result") {
     // This is a perfectly valid response object, as result field has to be present,
     // but can be null: https://www.jsonrpc.org/specification#response_object
-    val rawMessage = readFromString[RawMessage](""" {"jsonrpc":"2.0","result":null,"id":3} """.trim)
+    val rawMessage = readFromString[Json](""" {"jsonrpc":"2.0","result":null,"id":3} """.trim)
+      .as[RawMessage]
+      .fold(throw _, identity)
 
     // This, on the other hand, is an invalid response message, as result field is missing
-    val invalidRawMessage = readFromString[RawMessage](""" {"jsonrpc":"2.0","id":3} """.trim)
+    val invalidRawMessage =
+      readFromString[Json](""" {"jsonrpc":"2.0","id":3} """.trim).as[RawMessage].fold(throw _, identity)
 
     assert.same(
       rawMessage,
