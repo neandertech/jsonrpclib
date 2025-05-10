@@ -239,17 +239,7 @@ val root = project
     ).flatMap(_.projectRefs): _*
   )
 
-// The core compiles are a workaround for https://github.com/plokhotnyuk/jsoniter-scala/issues/564
-// when we switch to SN 0.5, we can use `makeWithSkipNestedOptionValues` instead: https://github.com/plokhotnyuk/jsoniter-scala/issues/564#issuecomment-2787096068
-val compileCoreModules = {
-  for {
-    scalaVersionSuffix <- List("", "3")
-    platformSuffix <- List("", "JS", "Native")
-    task <- List("compile", "package")
-  } yield s"core$platformSuffix$scalaVersionSuffix/$task"
-}.mkString(";")
-
 addCommandAlias(
   "ci",
-  s"$compileCoreModules;test;scalafmtCheckAll;mimaReportBinaryIssues"
+  s"$compile;test;scalafmtCheckAll;mimaReportBinaryIssues"
 )
