@@ -33,11 +33,11 @@ object OutputMessage {
 object Message {
   import jsonrpclib.internals.RawMessage
 
-  private[jsonrpclib] implicit val decoder: Decoder[Message] = Decoder.instance { c =>
+  implicit val decoder: Decoder[Message] = Decoder.instance { c =>
     c.as[RawMessage].flatMap(_.toMessage.left.map(e => io.circe.DecodingFailure(e.getMessage, c.history)))
   }
 
-  private[jsonrpclib] implicit val encoder: Encoder[Message] = Encoder.instance { msg =>
+  implicit val encoder: Encoder[Message] = Encoder.instance { msg =>
     RawMessage.from(msg).asJson
   }
 }

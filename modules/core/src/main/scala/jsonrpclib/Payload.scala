@@ -10,6 +10,6 @@ object Payload {
 
   val NullPayload: Payload = Payload(Json.Null)
 
-  private[jsonrpclib] implicit val payloadEncoder: Encoder[Payload] = Encoder[Json].contramap(_.data)
-  private[jsonrpclib] implicit val payloadDecoder: Decoder[Payload] = Decoder[Json].map(Payload(_))
+  implicit val payloadEncoder: Encoder[Payload] = Encoder[Json].contramap(_.data)
+  implicit val payloadDecoder: Decoder[Payload] = Decoder[Json].map(Payload(_))
 }

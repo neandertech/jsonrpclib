@@ -54,7 +54,7 @@ private[jsonrpclib] object RawMessage {
   }
 
   // Custom encoder to flatten nested Option[Option[Payload]]
-  private[jsonrpclib] implicit val rawMessageEncoder: Encoder[RawMessage] = Encoder.instance { msg =>
+  implicit val rawMessageEncoder: Encoder[RawMessage] = Encoder.instance { msg =>
     Json
       .obj(
         "jsonrpc" -> Json.fromString(msg.jsonrpc),
@@ -73,7 +73,7 @@ private[jsonrpclib] object RawMessage {
   }
 
   // Custom decoder to wrap result into Option[Option[Payload]]
-  private[jsonrpclib] implicit val rawMessageDecoder: Decoder[RawMessage] = Decoder.instance { c =>
+  implicit val rawMessageDecoder: Decoder[RawMessage] = Decoder.instance { c =>
     for {
       jsonrpc <- c.downField("jsonrpc").as[String]
       method <- c.downField("method").as[Option[String]]
