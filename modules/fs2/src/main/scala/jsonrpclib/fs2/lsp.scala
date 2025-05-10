@@ -11,9 +11,11 @@ import java.nio.charset.Charset
 import java.nio.charset.StandardCharsets
 import jsonrpclib.Message
 import jsonrpclib.ProtocolError
-import jsonrpclib.Payload.Data
-import jsonrpclib.Payload.NullPayload
 import scala.annotation.tailrec
+
+import com.github.plokhotnyuk.jsoniter_scala.core._
+import com.github.plokhotnyuk.jsoniter_scala.circe.JsoniterScalaCodec._
+import io.circe.Json
 
 object lsp {
 
@@ -39,20 +41,16 @@ object lsp {
         (ns, Chunk(maybeResult))
       }
       .flatMap {
-        case Right(acc)  => Stream.iterable(acc).map(c => Payload(c.toArray))
+        case Right(acc)  => Stream.iterable(acc).map(c => Payload(readFromArray[Json](c.toArray)))
         case Left(error) => Stream.raiseError[F](error)
       }
 
   private def writeChunk(payload: Payload): Chunk[Byte] = {
-    val bytes = payload match {
-      case Data(array) => array
-      case NullPayload => nullArray
-    }
+    val bytes = writeToArray(payload.data)
     val header = s"Content-Length: ${bytes.size}" + "\r\n" * 2
     Chunk.array(header.getBytes()) ++ Chunk.array(bytes)
   }
 
-  private val nullArray = "null".getBytes()
   private val returnByte = '\r'.toByte
   private val newlineByte = '\n'.toByte
 

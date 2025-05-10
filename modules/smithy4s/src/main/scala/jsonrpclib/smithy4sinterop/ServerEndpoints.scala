@@ -7,7 +7,6 @@ import smithy4s.kinds.FunctorAlgebra
 import smithy4s.kinds.FunctorInterpreter
 import smithy4s.json.Json
 import smithy4s.schema.Schema
-import jsonrpclib.Codec._
 import com.github.plokhotnyuk.jsoniter_scala.core._
 import jsonrpclib.Monadic
 
