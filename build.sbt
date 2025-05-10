@@ -241,5 +241,5 @@ val root = project
 
 addCommandAlias(
   "ci",
-  s"$compile;test;scalafmtCheckAll;mimaReportBinaryIssues"
+  s"compile;test;scalafmtCheckAll;mimaReportBinaryIssues"
 )
