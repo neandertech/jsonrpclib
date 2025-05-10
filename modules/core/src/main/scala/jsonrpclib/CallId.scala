@@ -8,7 +8,7 @@ object CallId {
   final case class StringId(string: String) extends CallId
   case object NullId extends CallId
 
-  implicit val callIdDecoder: Decoder[CallId] = Decoder.instance { cursor =>
+  private[jsonrpclib] implicit val callIdDecoder: Decoder[CallId] = Decoder.instance { cursor =>
     cursor.value.fold(
       jsonNull = Right(NullId),
       jsonNumber = num => num.toLong.map(NumberId(_)).toRight(decodingError(cursor)),
@@ -19,7 +19,7 @@ object CallId {
     )
   }
 
-  implicit val callIdEncoder: Encoder[CallId] = Encoder.instance {
+  private[jsonrpclib] implicit val callIdEncoder: Encoder[CallId] = Encoder.instance {
     case NumberId(n)   => Json.fromLong(n)
     case StringId(str) => Json.fromString(str)
     case NullId        => Json.Null

@@ -29,7 +29,7 @@ object Payload {
 
   case object NullPayload extends Payload
 
-  implicit val payloadEncoder: Encoder[Payload] = Encoder.instance {
+  private[jsonrpclib] implicit val payloadEncoder: Encoder[Payload] = Encoder.instance {
     case Data(arr) =>
       val base64 = Base64.getEncoder.encodeToString(arr)
       Json.fromString(base64)
@@ -37,7 +37,7 @@ object Payload {
       Json.Null
   }
 
-  implicit val payloadDecoder: Decoder[Payload] = Decoder.instance { c =>
+  private[jsonrpclib] implicit val payloadDecoder: Decoder[Payload] = Decoder.instance { c =>
     c.as[String] match {
       case Right(base64str) =>
         try {
