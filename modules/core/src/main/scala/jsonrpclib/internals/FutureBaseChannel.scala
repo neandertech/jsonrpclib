@@ -7,6 +7,8 @@ import scala.concurrent.ExecutionContext
 import scala.concurrent.Future
 import scala.concurrent.Promise
 import scala.util.Try
+import io.circe.Codec
+import io.circe.Encoder
 
 abstract class FutureBasedChannel(endpoints: List[Endpoint[Future]])(implicit ec: ExecutionContext)
     extends MessageDispatcher[Future] {
@@ -25,7 +27,7 @@ abstract class FutureBasedChannel(endpoints: List[Endpoint[Future]])(implicit ec
   protected def getEndpoint(method: String): Future[Option[Endpoint[Future]]] =
     Future.successful(endpointsMap.get(method))
   protected def sendMessage(message: Message): Future[Unit] = {
-    sendPayload(Codec.encode(message)).map(_ => ())
+    sendPayload(Payload(Encoder[Message].apply(message))).map(_ => ())
   }
   protected def nextCallId(): Future[CallId] = Future.successful(CallId.NumberId(nextID.incrementAndGet()))
 

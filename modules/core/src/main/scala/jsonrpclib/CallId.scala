@@ -1,6 +1,6 @@
 package jsonrpclib
 
-import io.circe.{Decoder, Encoder, Json}
+import io.circe.{Decoder, Encoder, Json, Codec}
 
 sealed trait CallId
 object CallId {
@@ -21,4 +21,6 @@ object CallId {
     case StringId(str) => Json.fromString(str)
     case NullId        => Json.Null
   }
+
+  implicit val codec: Codec[CallId] = Codec.from(callIdDecoder, callIdEncoder)
 }

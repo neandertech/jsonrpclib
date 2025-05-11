@@ -4,7 +4,7 @@ import smithy4s.~>
 import smithy4s.Service
 import smithy4s.schema._
 import smithy4s.ShapeId
-import jsonrpclib.Codec
+import io.circe.Codec
 import jsonrpclib.Channel
 import jsonrpclib.Monadic
 

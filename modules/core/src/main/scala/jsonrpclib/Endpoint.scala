@@ -1,5 +1,7 @@
 package jsonrpclib
 
+import io.circe.Codec
+
 sealed trait Endpoint[F[_]] {
   def method: String
 }

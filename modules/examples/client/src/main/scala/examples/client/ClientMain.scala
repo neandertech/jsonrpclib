@@ -2,7 +2,7 @@ package examples.client
 
 import cats.effect._
 import cats.syntax.all._
-import io.circe.{Decoder, Encoder}
+import io.circe.Codec
 import io.circe.generic.semiauto._
 import fs2.Stream
 import fs2.io._
@@ -18,8 +18,7 @@ object ClientMain extends IOApp.Simple {
   // Creating a datatype that'll serve as a request (and response) of an endpoint
   case class IntWrapper(value: Int)
   object IntWrapper {
-    implicit val decoder: Decoder[IntWrapper] = deriveDecoder
-    implicit val encoder: Encoder[IntWrapper] = deriveEncoder
+    implicit val codec: Codec[IntWrapper] = Codec.from(deriveDecoder, deriveEncoder)
   }
 
   type IOStream[A] = fs2.Stream[IO, A]

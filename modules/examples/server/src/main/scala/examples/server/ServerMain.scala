@@ -4,7 +4,7 @@ import jsonrpclib.CallId
 import jsonrpclib.fs2._
 import cats.effect._
 import fs2.io._
-import io.circe.{Decoder, Encoder}
+import io.circe.{Decoder, Encoder, Codec}
 import io.circe.generic.semiauto._
 import jsonrpclib.Endpoint
 
@@ -18,6 +18,8 @@ object ServerMain extends IOApp.Simple {
   object IntWrapper {
     implicit val decoder: Decoder[IntWrapper] = deriveDecoder
     implicit val encoder: Encoder[IntWrapper] = deriveEncoder
+
+    implicit val codec: Codec[IntWrapper] = Codec.from(decoder, encoder)
   }
 
   // Implementing an incrementation endpoint

@@ -1,5 +1,7 @@
 package jsonrpclib
 
+import io.circe.Codec
+
 trait Channel[F[_]] {
   def mountEndpoint(endpoint: Endpoint[F]): F[Unit]
   def unmountEndpoint(method: String): F[Unit]

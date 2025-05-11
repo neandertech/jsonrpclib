@@ -5,8 +5,7 @@ import fs2.Chunk
 import fs2.Stream
 import fs2.Pipe
 import jsonrpclib.Payload
-import jsonrpclib.Codec
-
+import io.circe.{Encoder, Decoder, HCursor}
 import java.nio.charset.Charset
 import java.nio.charset.StandardCharsets
 import jsonrpclib.Message
@@ -20,14 +19,14 @@ import io.circe.Json
 object lsp {
 
   def encodeMessages[F[_]]: Pipe[F, Message, Byte] =
-    (_: Stream[F, Message]).map(Codec.encode(_)).through(encodePayloads)
+    (_: Stream[F, Message]).map(Encoder[Message].apply(_)).map(Payload(_)).through(encodePayloads)
 
   def encodePayloads[F[_]]: Pipe[F, Payload, Byte] =
     (_: Stream[F, Payload]).map(writeChunk).flatMap(Stream.chunk(_))
 
   def decodeMessages[F[_]: MonadThrow]: Pipe[F, Byte, Either[ProtocolError, Message]] =
     (_: Stream[F, Byte]).through(decodePayloads).map { payload =>
-      Codec.decode[Message](Some(payload))
+      Decoder[Message].apply(HCursor.fromJson(payload.data)).left.map(e => ProtocolError.ParseError(e.getMessage))
     }
 
   /** Split a stream of bytes into payloads by extracting each frame based on information contained in the headers.

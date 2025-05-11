@@ -1,30 +1,22 @@
 package jsonrpclib.smithy4sinterop
 
-import jsonrpclib.Codec
-import jsonrpclib.Payload
-import jsonrpclib.ProtocolError
 import smithy4s.Document
-import com.github.plokhotnyuk.jsoniter_scala.core._
 import smithy4s.Schema
-import smithy4s.Document._
+import smithy4s.Document.{Decoder => _, _}
 import io.circe._
 
 private[jsonrpclib] object CirceJson {
 
   implicit def fromSchema[A](implicit schema: Schema[A]): Codec[A] = new Codec[A] {
-    def encode(a: A): Payload = {
-      Payload(documentToJson(Document.encode(a)))
-    }
+    def apply(a: A): Json =
+      documentToJson(Document.encode(a))
 
-    def decode(payload: Option[Payload]): Either[ProtocolError, A] = {
-      try {
-        payload match {
-          case Some(Payload(data)) =>
-            Document.decode[A](fromJson(data)).left.map(e => ProtocolError.ParseError(e.getMessage))
-          case None => Left(ProtocolError.ParseError("Expected to decode a payload"))
-        }
-      } catch { case e: JsonReaderException => Left(ProtocolError.ParseError(e.getMessage())) }
-    }
+    def apply(c: HCursor): Decoder.Result[A] =
+      c.as[Json]
+        .map(fromJson)
+        .flatMap(Document.decode[A])
+        .left
+        .map(e => DecodingFailure.apply(DecodingFailure.Reason.CustomReason(e.getMessage), c))
   }
 
   private val documentToJson: Document => Json = {

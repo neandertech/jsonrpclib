@@ -5,7 +5,7 @@ import cats.syntax.all._
 import fs2.Stream
 import jsonrpclib._
 import weaver._
-import io.circe.{Decoder, Encoder}
+import io.circe.Codec
 import io.circe.generic.semiauto._
 
 import scala.concurrent.duration._
@@ -14,14 +14,12 @@ object FS2ChannelSpec extends SimpleIOSuite {
 
   case class IntWrapper(int: Int)
   object IntWrapper {
-    implicit val decoder: Decoder[IntWrapper] = deriveDecoder
-    implicit val encoder: Encoder[IntWrapper] = deriveEncoder
+    implicit val codec: Codec[IntWrapper] = Codec.from(deriveDecoder, deriveEncoder)
   }
 
   case class CancelRequest(callId: CallId)
   object CancelRequest {
-    implicit val decoder: Decoder[CancelRequest] = deriveDecoder
-    implicit val encoder: Encoder[CancelRequest] = deriveEncoder
+    implicit val codec: Codec[CancelRequest] = Codec.from(deriveDecoder, deriveEncoder)
   }
 
   def testRes(name: TestName)(run: Stream[IO, Expectations]): Unit =

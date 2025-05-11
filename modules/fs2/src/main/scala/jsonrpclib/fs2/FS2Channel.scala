@@ -13,6 +13,7 @@ import cats.effect.std.Supervisor
 import cats.syntax.all._
 import cats.effect.syntax.all._
 import jsonrpclib.internals.MessageDispatcher
+import io.circe.Codec
 
 import scala.util.Try
 import java.util.regex.Pattern

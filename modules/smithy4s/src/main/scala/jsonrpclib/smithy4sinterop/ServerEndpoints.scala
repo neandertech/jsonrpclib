@@ -6,7 +6,7 @@ import smithy4s.Service
 import smithy4s.kinds.FunctorAlgebra
 import smithy4s.kinds.FunctorInterpreter
 import jsonrpclib.Monadic
-import jsonrpclib.Codec
+import io.circe.Codec
 
 object ServerEndpoints {
 
