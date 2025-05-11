@@ -4,9 +4,7 @@ import smithy4s.~>
 import smithy4s.Service
 import smithy4s.schema._
 import smithy4s.ShapeId
-import smithy4s.json.Json
-import jsonrpclib.Codec._
-import com.github.plokhotnyuk.jsoniter_scala.core._
+import jsonrpclib.Codec
 import jsonrpclib.Channel
 import jsonrpclib.Monadic
 
@@ -31,18 +29,13 @@ private class ClientStub[Alg[_[_, _, _, _, _]], F[_]: Monadic](val service: Serv
     service.impl(interpreter)
   }
 
-  private val jsoniterCodecGlobalCache = Json.jsoniter.createCache()
-
-  private def deriveJsonCodec[A](schema: Schema[A]): JsonCodec[A] =
-    Json.jsoniter.fromSchema(schema, jsoniterCodecGlobalCache)
-
   def jsonRPCStub[I, E, O, SI, SO](
       smithy4sEndpoint: service.Endpoint[I, E, O, SI, SO],
       endpointSpec: EndpointSpec
   ): I => F[O] = {
 
-    implicit val inputCodec: JsonCodec[I] = deriveJsonCodec(smithy4sEndpoint.input)
-    implicit val outputCodec: JsonCodec[O] = deriveJsonCodec(smithy4sEndpoint.output)
+    implicit val inputCodec: Codec[I] = CirceJson.fromSchema(smithy4sEndpoint.input)
+    implicit val outputCodec: Codec[O] = CirceJson.fromSchema(smithy4sEndpoint.output)
 
     endpointSpec match {
       case EndpointSpec.Notification(methodName) =>

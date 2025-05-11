@@ -5,10 +5,8 @@ import jsonrpclib.Endpoint
 import smithy4s.Service
 import smithy4s.kinds.FunctorAlgebra
 import smithy4s.kinds.FunctorInterpreter
-import smithy4s.json.Json
-import smithy4s.schema.Schema
-import com.github.plokhotnyuk.jsoniter_scala.core._
 import jsonrpclib.Monadic
+import jsonrpclib.Codec
 
 object ServerEndpoints {
 
@@ -26,11 +24,6 @@ object ServerEndpoints {
     }
   }
 
-  private val jsoniterCodecGlobalCache = Json.jsoniter.createCache()
-
-  private def deriveJsonCodec[A](schema: Schema[A]): JsonCodec[A] =
-    Json.jsoniter.fromSchema(schema, jsoniterCodecGlobalCache)
-
   // TODO : codify errors at smithy level and handle them.
   def jsonRPCEndpoint[F[_]: Monadic, Op[_, _, _, _, _], I, E, O, SI, SO](
       smithy4sEndpoint: Smithy4sEndpoint[Op, I, E, O, SI, SO],
@@ -38,8 +31,8 @@ object ServerEndpoints {
       impl: FunctorInterpreter[Op, F]
   ): Endpoint[F] = {
 
-    implicit val inputCodec: JsonCodec[I] = deriveJsonCodec(smithy4sEndpoint.input)
-    implicit val outputCodec: JsonCodec[O] = deriveJsonCodec(smithy4sEndpoint.output)
+    implicit val inputCodec: Codec[I] = CirceJson.fromSchema(smithy4sEndpoint.input)
+    implicit val outputCodec: Codec[O] = CirceJson.fromSchema(smithy4sEndpoint.output)
 
     endpointSpec match {
       case EndpointSpec.Notification(methodName) =>
