@@ -2,6 +2,8 @@ package jsonrpclib.smithy4sinterop
 
 import smithy4s.Document
 import smithy4s.Schema
+import smithy4s.codecs.PayloadPath
+
 import smithy4s.Document.{Decoder => _, _}
 import io.circe._
 
@@ -14,10 +16,21 @@ private[jsonrpclib] object CirceJson {
     def apply(c: HCursor): Decoder.Result[A] =
       c.as[Json]
         .map(fromJson)
-        .flatMap(Document.decode[A])
-        .left
-        .map(e => DecodingFailure.apply(DecodingFailure.Reason.CustomReason(e.getMessage), c.history))
+        .flatMap { d =>
+          Document
+            .decode[A](d)
+            .left
+            .map(e =>
+              DecodingFailure(DecodingFailure.Reason.CustomReason(e.getMessage), c.history ++ toCursorOps(e.path))
+            )
+        }
   }
+
+  private def toCursorOps(path: PayloadPath): List[CursorOp] =
+    path.segments.map {
+      case PayloadPath.Segment.Label(name) => CursorOp.DownField(name)
+      case PayloadPath.Segment.Index(i)    => CursorOp.DownN(i)
+    }
 
   private val documentToJson: Document => Json = {
     case DNull            => Json.Null
