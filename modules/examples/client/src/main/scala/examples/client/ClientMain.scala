@@ -2,8 +2,8 @@ package examples.client
 
 import cats.effect._
 import cats.syntax.all._
-import com.github.plokhotnyuk.jsoniter_scala.core.JsonValueCodec
-import com.github.plokhotnyuk.jsoniter_scala.macros.JsonCodecMaker
+import io.circe.Codec
+import io.circe.generic.semiauto._
 import fs2.Stream
 import fs2.io._
 import fs2.io.process.Processes
@@ -18,7 +18,7 @@ object ClientMain extends IOApp.Simple {
   // Creating a datatype that'll serve as a request (and response) of an endpoint
   case class IntWrapper(value: Int)
   object IntWrapper {
-    implicit val jcodec: JsonValueCodec[IntWrapper] = JsonCodecMaker.make
+    implicit val codec: Codec[IntWrapper] = deriveCodec
   }
 
   type IOStream[A] = fs2.Stream[IO, A]

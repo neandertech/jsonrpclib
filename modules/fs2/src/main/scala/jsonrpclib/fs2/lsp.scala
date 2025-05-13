@@ -5,27 +5,28 @@ import fs2.Chunk
 import fs2.Stream
 import fs2.Pipe
 import jsonrpclib.Payload
-import jsonrpclib.Codec
-
+import io.circe.{Encoder, Decoder, HCursor}
 import java.nio.charset.Charset
 import java.nio.charset.StandardCharsets
 import jsonrpclib.Message
 import jsonrpclib.ProtocolError
-import jsonrpclib.Payload.Data
-import jsonrpclib.Payload.NullPayload
 import scala.annotation.tailrec
+
+import com.github.plokhotnyuk.jsoniter_scala.core._
+import com.github.plokhotnyuk.jsoniter_scala.circe.JsoniterScalaCodec._
+import io.circe.Json
 
 object lsp {
 
   def encodeMessages[F[_]]: Pipe[F, Message, Byte] =
-    (_: Stream[F, Message]).map(Codec.encode(_)).through(encodePayloads)
+    (_: Stream[F, Message]).map(Encoder[Message].apply(_)).map(Payload(_)).through(encodePayloads)
 
   def encodePayloads[F[_]]: Pipe[F, Payload, Byte] =
     (_: Stream[F, Payload]).map(writeChunk).flatMap(Stream.chunk(_))
 
   def decodeMessages[F[_]: MonadThrow]: Pipe[F, Byte, Either[ProtocolError, Message]] =
     (_: Stream[F, Byte]).through(decodePayloads).map { payload =>
-      Codec.decode[Message](Some(payload))
+      Decoder[Message].apply(HCursor.fromJson(payload.data)).left.map(e => ProtocolError.ParseError(e.getMessage))
     }
 
   /** Split a stream of bytes into payloads by extracting each frame based on information contained in the headers.
@@ -39,20 +40,16 @@ object lsp {
         (ns, Chunk(maybeResult))
       }
       .flatMap {
-        case Right(acc)  => Stream.iterable(acc).map(c => Payload(c.toArray))
+        case Right(acc)  => Stream.iterable(acc).map(c => Payload(readFromArray[Json](c.toArray)))
         case Left(error) => Stream.raiseError[F](error)
       }
 
   private def writeChunk(payload: Payload): Chunk[Byte] = {
-    val bytes = payload match {
-      case Data(array) => array
-      case NullPayload => nullArray
-    }
+    val bytes = writeToArray(payload.data)
     val header = s"Content-Length: ${bytes.size}" + "\r\n" * 2
     Chunk.array(header.getBytes()) ++ Chunk.array(bytes)
   }
 
-  private val nullArray = "null".getBytes()
   private val returnByte = '\r'.toByte
   private val newlineByte = '\n'.toByte
 

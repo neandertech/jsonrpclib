@@ -1,7 +1,6 @@
 package jsonrpclib
 
-import com.github.plokhotnyuk.jsoniter_scala.core._
-import scala.annotation.switch
+import io.circe.{Decoder, Encoder, Json, Codec}
 
 sealed trait CallId
 object CallId {
@@ -9,24 +8,17 @@ object CallId {
   final case class StringId(string: String) extends CallId
   case object NullId extends CallId
 
-  implicit val callIdRW: JsonValueCodec[CallId] = new JsonValueCodec[CallId] {
-    def decodeValue(in: JsonReader, default: CallId): CallId = {
-      val nt = in.nextToken()
-
-      (nt: @switch) match {
-        case 'n' => in.readNullOrError(default, "expected null")
-        case '"' => in.rollbackToken(); StringId(in.readString(null))
-        case _   => in.rollbackToken(); NumberId(in.readLong())
-
-      }
+  implicit val codec: Codec[CallId] = Codec.from(
+    Decoder
+      .decodeOption(Decoder.decodeString.map(StringId(_): CallId).or(Decoder.decodeLong.map(NumberId(_): CallId)))
+      .map {
+        case None    => NullId
+        case Some(v) => v
+      },
+    {
+      case NumberId(n)   => Json.fromLong(n)
+      case StringId(str) => Json.fromString(str)
+      case NullId        => Json.Null
     }
-
-    def encodeValue(x: CallId, out: JsonWriter): Unit = x match {
-      case NumberId(long)   => out.writeVal(long)
-      case StringId(string) => out.writeVal(string)
-      case NullId           => out.writeNull()
-    }
-
-    def nullValue: CallId = CallId.NullId
-  }
+  )
 }
