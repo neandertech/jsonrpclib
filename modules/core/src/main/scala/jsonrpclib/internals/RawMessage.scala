@@ -54,21 +54,22 @@ private[jsonrpclib] object RawMessage {
   }
 
   // Custom encoder to flatten nested Option[Option[Payload]]
-  implicit val rawMessageEncoder: Encoder[RawMessage] = Encoder.instance { msg =>
+  implicit val rawMessageEncoder: Encoder[RawMessage] = { msg =>
     Json
       .obj(
-        "jsonrpc" -> Json.fromString(msg.jsonrpc),
-        "method" -> msg.method.asJson,
-        "params" -> msg.params.asJson,
-        "error" -> msg.error.asJson,
-        "id" -> msg.id.asJson
-      )
-      .deepMerge(
-        msg.result match {
-          case Some(Some(payload)) => Json.obj("result" -> payload.asJson)
-          case Some(None)          => Json.obj("result" -> Json.Null)
-          case None                => Json.obj()
-        }
+        List(
+          "jsonrpc" -> msg.jsonrpc.asJson,
+          "method" -> msg.method.asJson,
+          "params" -> msg.params.asJson,
+          "error" -> msg.error.asJson,
+          "id" -> msg.id.asJson
+        ) ++ {
+          msg.result match {
+            case Some(Some(payload)) => List("result" -> payload.asJson)
+            case Some(None)          => List("result" -> Json.Null)
+            case None                => Nil
+          }
+        }: _*
       )
   }
 

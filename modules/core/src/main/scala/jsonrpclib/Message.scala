@@ -2,6 +2,7 @@ package jsonrpclib
 
 import io.circe.{Decoder, Encoder}
 import io.circe.syntax._
+import io.circe.Codec
 
 sealed trait Message { def maybeCallId: Option[CallId] }
 sealed trait InputMessage extends Message { def method: String }
@@ -33,11 +34,10 @@ object OutputMessage {
 object Message {
   import jsonrpclib.internals.RawMessage
 
-  implicit val decoder: Decoder[Message] = Decoder.instance { c =>
-    c.as[RawMessage].flatMap(_.toMessage.left.map(e => io.circe.DecodingFailure(e.getMessage, c.history)))
-  }
-
-  implicit val encoder: Encoder[Message] = Encoder.instance { msg =>
-    RawMessage.from(msg).asJson
-  }
+  implicit val codec: Codec[Message] = Codec.from(
+    { c =>
+      c.as[RawMessage].flatMap(_.toMessage.left.map(e => io.circe.DecodingFailure(e.getMessage, c.history)))
+    },
+    RawMessage.from(_).asJson
+  )
 }

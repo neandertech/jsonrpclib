@@ -8,19 +8,17 @@ object CallId {
   final case class StringId(string: String) extends CallId
   case object NullId extends CallId
 
-  implicit val callIdDecoder: Decoder[CallId] =
+  implicit val codec: Codec[CallId] = Codec.from(
     Decoder
       .decodeOption(Decoder.decodeString.map(StringId(_): CallId).or(Decoder.decodeLong.map(NumberId(_): CallId)))
       .map {
         case None    => NullId
         case Some(v) => v
-      }
-
-  implicit val callIdEncoder: Encoder[CallId] = Encoder.instance {
-    case NumberId(n)   => Json.fromLong(n)
-    case StringId(str) => Json.fromString(str)
-    case NullId        => Json.Null
-  }
-
-  implicit val codec: Codec[CallId] = Codec.from(callIdDecoder, callIdEncoder)
+      },
+    {
+      case NumberId(n)   => Json.fromLong(n)
+      case StringId(str) => Json.fromString(str)
+      case NullId        => Json.Null
+    }
+  )
 }

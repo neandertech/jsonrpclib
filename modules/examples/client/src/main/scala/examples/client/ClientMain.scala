@@ -18,7 +18,7 @@ object ClientMain extends IOApp.Simple {
   // Creating a datatype that'll serve as a request (and response) of an endpoint
   case class IntWrapper(value: Int)
   object IntWrapper {
-    implicit val codec: Codec[IntWrapper] = Codec.from(deriveDecoder, deriveEncoder)
+    implicit val codec: Codec[IntWrapper] = deriveCodec
   }
 
   type IOStream[A] = fs2.Stream[IO, A]

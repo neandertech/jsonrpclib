@@ -14,12 +14,12 @@ object FS2ChannelSpec extends SimpleIOSuite {
 
   case class IntWrapper(int: Int)
   object IntWrapper {
-    implicit val codec: Codec[IntWrapper] = Codec.from(deriveDecoder, deriveEncoder)
+    implicit val codec: Codec[IntWrapper] = deriveCodec
   }
 
   case class CancelRequest(callId: CallId)
   object CancelRequest {
-    implicit val codec: Codec[CancelRequest] = Codec.from(deriveDecoder, deriveEncoder)
+    implicit val codec: Codec[CancelRequest] = deriveCodec
   }
 
   def testRes(name: TestName)(run: Stream[IO, Expectations]): Unit =

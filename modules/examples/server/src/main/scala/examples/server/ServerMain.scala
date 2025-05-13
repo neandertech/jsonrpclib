@@ -16,10 +16,7 @@ object ServerMain extends IOApp.Simple {
   // Creating a datatype that'll serve as a request (and response) of an endpoint
   case class IntWrapper(value: Int)
   object IntWrapper {
-    implicit val decoder: Decoder[IntWrapper] = deriveDecoder
-    implicit val encoder: Encoder[IntWrapper] = deriveEncoder
-
-    implicit val codec: Codec[IntWrapper] = Codec.from(decoder, encoder)
+    implicit val codec: Codec[IntWrapper] = deriveCodec
   }
 
   // Implementing an incrementation endpoint
