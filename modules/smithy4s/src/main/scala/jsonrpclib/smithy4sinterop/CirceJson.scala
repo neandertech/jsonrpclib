@@ -7,7 +7,7 @@ import io.circe._
 
 private[jsonrpclib] object CirceJson {
 
-  implicit def fromSchema[A](implicit schema: Schema[A]): Codec[A] = new Codec[A] {
+  def fromSchema[A](implicit schema: Schema[A]): Codec[A] = new Codec[A] {
     def apply(a: A): Json =
       documentToJson(Document.encode(a))
 
@@ -16,7 +16,7 @@ private[jsonrpclib] object CirceJson {
         .map(fromJson)
         .flatMap(Document.decode[A])
         .left
-        .map(e => DecodingFailure.apply(DecodingFailure.Reason.CustomReason(e.getMessage), c))
+        .map(e => DecodingFailure.apply(DecodingFailure.Reason.CustomReason(e.getMessage), c.history))
   }
 
   private val documentToJson: Document => Json = {
