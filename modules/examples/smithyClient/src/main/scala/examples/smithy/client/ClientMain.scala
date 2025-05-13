@@ -7,6 +7,7 @@ import jsonrpclib.CallId
 import jsonrpclib.fs2._
 import jsonrpclib.smithy4sinterop.ClientStub
 import jsonrpclib.smithy4sinterop.ServerEndpoints
+import fs2.io.process.Processes
 import test._
 
 object SmithyClientMain extends IOApp.Simple {
@@ -30,7 +31,12 @@ object SmithyClientMain extends IOApp.Simple {
       _ <- log("Starting client")
       serverJar <- sys.env.get("SERVER_JAR").liftTo[IOStream](new Exception("SERVER_JAR env var does not exist"))
       // Starting the server
-      rp <- ChildProcess.spawn[IO]("java", "-jar", serverJar)
+      rp <- Stream.resource(
+        Processes[IO]
+          .spawn(
+            fs2.io.process.ProcessBuilder("java", "-jar", serverJar)
+          )
+      )
       // Creating a channel that will be used to communicate to the server
       fs2Channel <- FS2Channel.stream[IO](cancelTemplate = cancelEndpoint.some)
       // Mounting our implementation of the generated interface onto the channel
