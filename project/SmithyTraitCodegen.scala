@@ -18,11 +18,17 @@ object SmithyTraitCodegen {
 
   import BasicJsonProtocol.*
 
-  case class Args(targetDir: os.Path, smithySourcesDir: PathRef, dependencies: List[PathRef])
+  case class Args(
+      javaPackage: String,
+      smithyNamespace: String,
+      targetDir: os.Path,
+      smithySourcesDir: PathRef,
+      dependencies: List[PathRef]
+  )
   object Args {
 
     // format: off
-    private type ArgsDeconstructed = os.Path :*: PathRef :*: List[PathRef] :*: LNil
+    private type ArgsDeconstructed = String :*: String :*: os.Path :*: PathRef :*: List[PathRef] :*: LNil
     // format: on
 
     private implicit val pathFormat: JsonFormat[os.Path] =
@@ -31,17 +37,23 @@ object SmithyTraitCodegen {
     implicit val argsIso =
       LList.iso[Args, ArgsDeconstructed](
         { args: Args =>
-          ("targetDir", args.targetDir) :*:
+          ("javaPackage", args.javaPackage) :*:
+            ("smithyNamespace", args.smithyNamespace) :*:
+            ("targetDir", args.targetDir) :*:
             ("smithySourcesDir", args.smithySourcesDir) :*:
             ("dependencies", args.dependencies) :*:
             LNil
         },
         {
-          case (_, targetDir) :*:
+          case (_, javaPackage) :*:
+              (_, smithyNamespace) :*:
+              (_, targetDir) :*:
               (_, smithySourcesDir) :*:
               (_, dependencies) :*:
               LNil =>
             Args(
+              javaPackage = javaPackage,
+              smithyNamespace = smithyNamespace,
               targetDir = targetDir,
               smithySourcesDir = smithySourcesDir,
               dependencies = dependencies
@@ -100,8 +112,8 @@ object SmithyTraitCodegen {
       .settings(
         ObjectNode
           .builder()
-          .withMember("package", "jsonrpclib")
-          .withMember("namespace", "jsonrpclib")
+          .withMember("package", args.javaPackage)
+          .withMember("namespace", args.smithyNamespace)
           .withMember("header", ArrayNode.builder.build())
           .withMember("excludeTags", ArrayNode.builder.withValue("nocodegen").build())
           .build()

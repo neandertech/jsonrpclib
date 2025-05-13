@@ -13,16 +13,38 @@ object SmithyTraitCodegenPlugin extends AutoPlugin {
   override def trigger: PluginTrigger = noTrigger
   override def requires: Plugins = JvmPlugin
 
+  object autoImport {
+    val smithyTraitCodegenJavaPackage =
+      settingKey[String]("The java target package where the generated smithy traits will be created")
+    val smithyTraitCodegenNamespace = settingKey[String]("The smithy namespace where the traits are defined")
+    val smithyTraitCodegenDependencies = settingKey[List[ModuleID]]("Dependencies to be added into codegen model")
+  }
+  import autoImport.*
+
   override def projectSettings: Seq[Setting[?]] =
     Seq(
       Keys.generateSmithyTraits := Def.task {
         import sbt.util.CacheImplicits.*
         val s = (Compile / streams).value
         val logger = sLog.value
+
+        val report = update.value
+        val dependencies = smithyTraitCodegenDependencies.value
+        val jars =
+          dependencies.flatMap(m =>
+            report.matching(moduleFilter(organization = m.organization, name = m.name, revision = m.revision))
+          )
+        require(
+          jars.size == dependencies.size,
+          "Not all dependencies required for smithy-trait-codegen have been found"
+        )
+
         val args = SmithyTraitCodegen.Args(
+          javaPackage = smithyTraitCodegenJavaPackage.value,
+          smithyNamespace = smithyTraitCodegenNamespace.value,
           targetDir = os.Path((Compile / target).value),
           smithySourcesDir = PathRef((Compile / resourceDirectory).value / "META-INF" / "smithy"),
-          dependencies = List.empty
+          dependencies = jars.map(PathRef(_)).toList
         )
         val cachedCodegen =
           Tracked.inputChanged[SmithyTraitCodegen.Args, SmithyTraitCodegen.Output](
@@ -54,7 +76,7 @@ object SmithyTraitCodegenPlugin extends AutoPlugin {
         val codegenOutput = (Compile / Keys.generateSmithyTraits).value
         cleanCopy(source = codegenOutput.metaDir, target = (Compile / resourceManaged).value)
       }.taskValue,
-      libraryDependencies += "software.amazon.smithy" % "smithy-model" % "1.56.0"
+      libraryDependencies ++= smithyTraitCodegenDependencies.value
     )
 
   private def cleanCopy(source: File, target: File) = {

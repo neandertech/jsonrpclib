@@ -7,6 +7,16 @@ namespace jsonrpclib
 @protocolDefinition(traits: [
     jsonRequest
     jsonNotification
+    smithy.api#jsonName
+    smithy.api#length
+    smithy.api#pattern
+    smithy.api#range
+    smithy.api#required
+    smithy.api#timestampFormat
+    alloy#uuidFormat
+    alloy#discriminated
+    alloy#nullable
+    alloy#untagged
 ])
 @trait(selector: "service")
 structure jsonRPC {

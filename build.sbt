@@ -96,7 +96,10 @@ val smithy = projectMatrix
   .enablePlugins(SmithyTraitCodegenPlugin)
   .settings(
     name := "jsonrpclib-smithy",
-    commonJvmSettings
+    commonJvmSettings,
+    smithyTraitCodegenDependencies := List(Dependencies.alloy.core),
+    smithyTraitCodegenJavaPackage := "jsonrpclib",
+    smithyTraitCodegenNamespace := "jsonrpclib"
   )
 
 lazy val buildTimeProtocolDependency =
