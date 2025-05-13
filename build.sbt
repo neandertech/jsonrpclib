@@ -128,7 +128,6 @@ val smithy4s = projectMatrix
     commonSettings,
     mimaPreviousArtifacts := Set.empty,
     libraryDependencies ++= Seq(
-      "co.fs2" %%% "fs2-core" % fs2Version,
       "com.disneystreaming.smithy4s" %%% "smithy4s-json" % smithy4sVersion.value
     ),
     buildTimeProtocolDependency
