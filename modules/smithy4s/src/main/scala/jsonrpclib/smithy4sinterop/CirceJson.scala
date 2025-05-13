@@ -9,11 +9,8 @@ import io.circe._
 
 private[jsonrpclib] object CirceJson {
 
-  def fromSchema[A](implicit schema: Schema[A]): Codec[A] = new Codec[A] {
-    def apply(a: A): Json =
-      documentToJson(Document.encode(a))
-
-    def apply(c: HCursor): Decoder.Result[A] =
+  def fromSchema[A](implicit schema: Schema[A]): Codec[A] = Codec.from(
+    c => {
       c.as[Json]
         .map(fromJson)
         .flatMap { d =>
@@ -24,7 +21,9 @@ private[jsonrpclib] object CirceJson {
               DecodingFailure(DecodingFailure.Reason.CustomReason(e.getMessage), c.history ++ toCursorOps(e.path))
             )
         }
-  }
+    },
+    a => documentToJson(Document.encode(a))
+  )
 
   private def toCursorOps(path: PayloadPath): List[CursorOp] =
     path.segments.map {
