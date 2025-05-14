@@ -26,4 +26,19 @@ object Monadic {
 
     override def doMap[A, B](fa: Future[A])(f: A => B): Future[B] = fa.map(f)
   }
+
+  object syntax {
+    implicit class MonadicOps[F[_], A](fa: F[A]) {
+      def flatMap[B](f: A => F[B])(implicit m: Monadic[F]): F[B] = m.doFlatMap(fa)(f)
+      def map[B](f: A => B)(implicit m: Monadic[F]): F[B] = m.doMap(fa)(f)
+      def attempt[B](implicit m: Monadic[F]): F[Either[Throwable, A]] = m.doAttempt(fa)
+      def void(implicit m: Monadic[F]): F[Unit] = m.doVoid(fa)
+    }
+    implicit class MonadicOpsPure[A](a: A) {
+      def pure[F[_]](implicit m: Monadic[F]): F[A] = m.doPure(a)
+    }
+    implicit class MonadicOpsThrowable(t: Throwable) {
+      def raiseError[F[_], A](implicit m: Monadic[F]): F[A] = m.doRaiseError(t)
+    }
+  }
 }
