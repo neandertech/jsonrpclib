@@ -5,8 +5,14 @@ import jsonrpclib.Endpoint
 import smithy4s.Service
 import smithy4s.kinds.FunctorAlgebra
 import smithy4s.kinds.FunctorInterpreter
+import smithy4s.schema.Schema
+import jsonrpclib.ErrorCodec
+import jsonrpclib.ProtocolError
 import jsonrpclib.Monadic
+import jsonrpclib.Payload
+import jsonrpclib.ErrorPayload
 import io.circe.Codec
+import jsonrpclib.Monadic.syntax._
 
 object ServerEndpoints {
 
@@ -24,7 +30,6 @@ object ServerEndpoints {
     }
   }
 
-  // TODO : codify errors at smithy level and handle them.
   def jsonRPCEndpoint[F[_]: Monadic, Op[_, _, _, _, _], I, E, O, SI, SO](
       smithy4sEndpoint: Smithy4sEndpoint[Op, I, E, O, SI, SO],
       endpointSpec: EndpointSpec,
@@ -34,17 +39,45 @@ object ServerEndpoints {
     implicit val inputCodec: Codec[I] = CirceJson.fromSchema(smithy4sEndpoint.input)
     implicit val outputCodec: Codec[O] = CirceJson.fromSchema(smithy4sEndpoint.output)
 
+    def errorResponse(throwable: Throwable): F[E] = throwable match {
+      case smithy4sEndpoint.Error((_, e)) => e.pure
+      case e: Throwable                   => e.raiseError
+    }
+
     endpointSpec match {
       case EndpointSpec.Notification(methodName) =>
         Endpoint[F](methodName).notification { (input: I) =>
           val op = smithy4sEndpoint.wrap(input)
-          Monadic[F].doVoid(impl(op))
+          impl(op).void
         }
       case EndpointSpec.Request(methodName) =>
-        Endpoint[F](methodName).simple { (input: I) =>
-          val op = smithy4sEndpoint.wrap(input)
-          impl(op)
+        smithy4sEndpoint.error match {
+          case None =>
+            Endpoint[F](methodName).simple[I, O] { (input: I) =>
+              val op = smithy4sEndpoint.wrap(input)
+              impl(op)
+            }
+          case Some(errorSchema) =>
+            implicit val errorCodec: ErrorCodec[E] = errorCodecFromSchema(errorSchema.schema)
+            Endpoint[F](methodName).apply[I, E, O] { (input: I) =>
+              val op = smithy4sEndpoint.wrap(input)
+              impl(op).attempt.flatMap {
+                case Left(err)      => errorResponse(err).map(r => Left(r): Either[E, O])
+                case Right(success) => (Right(success): Either[E, O]).pure
+              }
+            }
         }
+    }
+  }
+
+  private def errorCodecFromSchema[A](s: Schema[A]): ErrorCodec[A] = {
+    new ErrorCodec[A] {
+
+      def encode(a: A): ErrorPayload = {
+        ErrorPayload(-1, "Something went wrong", Some(Payload(CirceJson.fromSchema(s).apply(a))))
+
+      }
+      def decode(error: ErrorPayload): Either[ProtocolError, A] = ???
     }
   }
 }
