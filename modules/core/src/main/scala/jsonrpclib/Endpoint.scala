@@ -6,7 +6,7 @@ import jsonrpclib.ErrorCodec.errorPayloadCodec
 sealed trait Endpoint[F[_]] {
   def method: String
 
-  def mapK[G[_]](f: F ~> G): Endpoint[G]
+  def mapK[G[_]](f: PolyFunction[F, G]): Endpoint[G]
 }
 
 object Endpoint {
@@ -51,7 +51,7 @@ object Endpoint {
       inCodec: Codec[In]
   ) extends Endpoint[F] {
 
-    def mapK[G[_]](f: F ~> G): Endpoint[G] =
+    def mapK[G[_]](f: PolyFunction[F, G]): Endpoint[G] =
       NotificationEndpoint[G, In](method, (msg, in) => f(run(msg, in)), inCodec)
   }
 
@@ -63,7 +63,7 @@ object Endpoint {
       outCodec: Codec[Out]
   ) extends Endpoint[F] {
 
-    def mapK[G[_]](f: F ~> G): Endpoint[G] =
+    def mapK[G[_]](f: PolyFunction[F, G]): Endpoint[G] =
       RequestResponseEndpoint[G, In, Err, Out](method, (msg, in) => f(run(msg, in)), inCodec, errEncoder, outCodec)
   }
 }
