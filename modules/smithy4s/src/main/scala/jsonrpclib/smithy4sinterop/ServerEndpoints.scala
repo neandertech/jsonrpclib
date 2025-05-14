@@ -74,7 +74,7 @@ object ServerEndpoints {
     new ErrorCodec[A] {
 
       def encode(a: A): ErrorPayload = {
-        ErrorPayload(-1, "Something went wrong", Some(Payload(CirceJson.fromSchema(s).apply(a))))
+        ErrorPayload(-32000, "JSONRPC application error", Some(Payload(CirceJson.fromSchema(s).apply(a))))
 
       }
       def decode(error: ErrorPayload): Either[ProtocolError, A] = ???
