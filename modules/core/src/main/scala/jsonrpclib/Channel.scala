@@ -1,6 +1,7 @@
 package jsonrpclib
 
 import io.circe.Codec
+import jsonrpclib.ErrorCodec.errorPayloadCodec
 
 trait Channel[F[_]] {
   def mountEndpoint(endpoint: Endpoint[F]): F[Unit]
@@ -8,7 +9,7 @@ trait Channel[F[_]] {
 
   def notificationStub[In: Codec](method: String): In => F[Unit]
   def simpleStub[In: Codec, Out: Codec](method: String): In => F[Out]
-  def stub[In: Codec, Err: ErrorCodec, Out: Codec](method: String): In => F[Either[Err, Out]]
+  def stub[In: Codec, Err: ErrorDecoder, Out: Codec](method: String): In => F[Either[Err, Out]]
   def stub[In, Err, Out](template: StubTemplate[In, Err, Out]): In => F[Either[Err, Out]]
 }
 

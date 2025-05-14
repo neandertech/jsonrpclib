@@ -3,6 +3,5 @@ package object jsonrpclib {
   type ErrorCode = Int
   type ErrorMessage = String
 
-  private[jsonrpclib] type ~>[F[_], G[_]] = jsonrpclib.PolyFunction[F, G]
-
+  type ~>[F[_], G[_]] = PolyFunction[F, G]
 }
