@@ -12,6 +12,7 @@ import jsonrpclib.ErrorPayload
 import io.circe.Codec
 import jsonrpclib.Monadic.syntax._
 import jsonrpclib.ErrorEncoder
+import smithy4s.schema.ErrorSchema
 
 object ServerEndpoints {
 
@@ -57,7 +58,7 @@ object ServerEndpoints {
               impl(op)
             }
           case Some(errorSchema) =>
-            implicit val errorCodec: ErrorEncoder[E] = errorCodecFromSchema(errorSchema.schema)
+            implicit val errorCodec: ErrorEncoder[E] = errorCodecFromSchema(errorSchema)
             Endpoint[F](methodName).apply[I, E, O] { (input: I) =>
               val op = smithy4sEndpoint.wrap(input)
               impl(op).attempt.flatMap {
@@ -69,7 +70,13 @@ object ServerEndpoints {
     }
   }
 
-  private def errorCodecFromSchema[A](s: Schema[A]): ErrorEncoder[A] = { (a: A) =>
-    ErrorPayload(-32000, "JSONRPC-smithy4s application error", Some(Payload(CirceJson.fromSchema(s).apply(a))))
+  private def errorCodecFromSchema[A](s: ErrorSchema[A]): ErrorEncoder[A] = {
+    val circeCodec = CirceJson.fromSchema(s.schema)
+    (a: A) =>
+      ErrorPayload(
+        -32000,
+        Option(s.unliftError(a).getMessage()).getOrElse("JSONRPC-smithy4s application error"),
+        Some(Payload(circeCodec.apply(a)))
+      )
   }
 }
