@@ -40,6 +40,14 @@ val commonSettings = Seq(
       case Some((2, _)) => Seq(s"-target:jvm-$jdkVersion")
       case _            => Seq(s"-java-output-version:$jdkVersion")
     }
+  },
+  bspEnabled := {
+    val id = thisProjectRef.value.project
+    val isScala3 = scalaVersion.value.startsWith("3.")
+    val isJS = id.contains("JS")
+    val isNative = id.contains("Native")
+
+    isScala3 && !isJS && !isNative
   }
 )
 

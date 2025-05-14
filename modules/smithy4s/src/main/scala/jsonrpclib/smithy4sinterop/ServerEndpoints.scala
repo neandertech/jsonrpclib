@@ -6,13 +6,12 @@ import smithy4s.Service
 import smithy4s.kinds.FunctorAlgebra
 import smithy4s.kinds.FunctorInterpreter
 import smithy4s.schema.Schema
-import jsonrpclib.ErrorCodec
-import jsonrpclib.ProtocolError
 import jsonrpclib.Monadic
 import jsonrpclib.Payload
 import jsonrpclib.ErrorPayload
 import io.circe.Codec
 import jsonrpclib.Monadic.syntax._
+import jsonrpclib.ErrorEncoder
 
 object ServerEndpoints {
 
@@ -58,7 +57,7 @@ object ServerEndpoints {
               impl(op)
             }
           case Some(errorSchema) =>
-            implicit val errorCodec: ErrorCodec[E] = errorCodecFromSchema(errorSchema.schema)
+            implicit val errorCodec: ErrorEncoder[E] = errorCodecFromSchema(errorSchema.schema)
             Endpoint[F](methodName).apply[I, E, O] { (input: I) =>
               val op = smithy4sEndpoint.wrap(input)
               impl(op).attempt.flatMap {
@@ -70,14 +69,7 @@ object ServerEndpoints {
     }
   }
 
-  private def errorCodecFromSchema[A](s: Schema[A]): ErrorCodec[A] = {
-    new ErrorCodec[A] {
-
-      def encode(a: A): ErrorPayload = {
-        ErrorPayload(-32000, "JSONRPC application error", Some(Payload(CirceJson.fromSchema(s).apply(a))))
-
-      }
-      def decode(error: ErrorPayload): Either[ProtocolError, A] = ???
-    }
+  private def errorCodecFromSchema[A](s: Schema[A]): ErrorEncoder[A] = { (a: A) =>
+    ErrorPayload(-32000, "JSONRPC-smithy4s application error", Some(Payload(CirceJson.fromSchema(s).apply(a))))
   }
 }

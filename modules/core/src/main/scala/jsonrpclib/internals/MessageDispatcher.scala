@@ -30,13 +30,13 @@ private[jsonrpclib] abstract class MessageDispatcher[F[_]](implicit F: Monadic[F
 
   def stub[In, Err, Out](
       method: String
-  )(implicit inCodec: Codec[In], errCodec: ErrorCodec[Err], outCodec: Codec[Out]): In => F[Either[Err, Out]] = {
+  )(implicit inCodec: Codec[In], errDecoder: ErrorDecoder[Err], outCodec: Codec[Out]): In => F[Either[Err, Out]] = {
     (input: In) =>
       val encoded = inCodec(input)
       doFlatMap(nextCallId()) { callId =>
         val message = InputMessage.RequestMessage(method, callId, Some(Payload(encoded)))
         doFlatMap(createPromise[Either[Err, Out]](callId)) { case (fulfill, future) =>
-          val pc = createPendingCall(errCodec, outCodec, fulfill)
+          val pc = createPendingCall(errDecoder, outCodec, fulfill)
           doFlatMap(storePendingCall(callId, pc))(_ => doFlatMap(sendMessage(message))(_ => future()))
         }
       }
@@ -85,7 +85,7 @@ private[jsonrpclib] abstract class MessageDispatcher[F[_]](implicit F: Monadic[F
                 val responseData = ep.outCodec(data)
                 sendMessage(OutputMessage.ResponseMessage(callId, Payload(responseData)))
               case Left(error) =>
-                val errorPayload = ep.errCodec.encode(error)
+                val errorPayload = ep.errEncoder.encode(error)
                 sendMessage(OutputMessage.ErrorMessage(callId, errorPayload))
             }
           case Left(pError) =>
@@ -111,13 +111,13 @@ private[jsonrpclib] abstract class MessageDispatcher[F[_]](implicit F: Monadic[F
   }
 
   private def createPendingCall[Err, Out](
-      errCodec: ErrorCodec[Err],
+      errDecoder: ErrorDecoder[Err],
       outCodec: Codec[Out],
       fulfill: Try[Either[Err, Out]] => F[Unit]
   ): OutputMessage => F[Unit] = { (message: OutputMessage) =>
     message match {
       case ErrorMessage(_, errorPayload) =>
-        errCodec.decode(errorPayload) match {
+        errDecoder.decode(errorPayload) match {
           case Left(_)      => fulfill(scala.util.Failure(errorPayload))
           case Right(value) => fulfill(scala.util.Success(Left(value)))
         }
