@@ -52,7 +52,7 @@ private class ClientStub[Alg[_[_, _, _, _, _]], F[_]: Monadic](val service: Serv
   private object CoerceUnitVisitor extends (Schema ~> F) {
     def apply[A](schema: Schema[A]): F[A] = schema match {
       case s @ Schema.StructSchema(_, _, _, make) if s.isUnit =>
-        Monadic[F].doPure(()).asInstanceOf[F[A]]
+        Monadic[F].doPure(make(IndexedSeq.empty))
       case _ => Monadic[F].doRaiseError[A](NotUnitReturnType)
     }
   }
