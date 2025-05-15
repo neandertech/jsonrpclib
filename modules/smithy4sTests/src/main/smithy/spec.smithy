@@ -26,6 +26,13 @@ operation Greet {
         @required
         message: String
     }
+    errors: [NotWelcomeError]
+}
+
+@error("client")
+structure NotWelcomeError {
+    @required
+    msg: String
 }
 
 @jsonNotification("ping")

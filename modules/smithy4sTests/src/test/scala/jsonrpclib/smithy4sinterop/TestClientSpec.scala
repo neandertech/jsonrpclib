@@ -5,6 +5,7 @@ import fs2.Stream
 import jsonrpclib._
 import test.TestServer
 import weaver._
+import cats.syntax.all._
 
 import scala.concurrent.duration._
 import jsonrpclib.fs2._
@@ -12,6 +13,8 @@ import test.GreetOutput
 import io.circe.Encoder
 import test.GreetInput
 import io.circe.Decoder
+import test.PingInput
+import _root_.fs2.concurrent.SignallingRef
 
 object TestClientSpec extends SimpleIOSuite {
   def testRes(name: TestName)(run: Stream[IO, Expectations]): Unit =
@@ -41,10 +44,25 @@ object TestClientSpec extends SimpleIOSuite {
 
     for {
       clientSideChannel <- setup(endpoint)
-      server: TestServer[IO] = ClientStub(TestServer, clientSideChannel)
-      result <- server.greet("Bob").toStream
+      clientStub = ClientStub(TestServer, clientSideChannel)
+      result <- clientStub.greet("Bob").toStream
     } yield {
       expect.same(result.message, "Hello Bob")
+    }
+  }
+
+  testRes("Sending notification") {
+    implicit val pingInputDecoder: Decoder[PingInput] = CirceJson.fromSchema
+
+    for {
+      ref <- SignallingRef[IO, Option[PingInput]](none).toStream
+      endpoint: Endpoint[IO] = Endpoint[IO]("ping").notification[PingInput](p => ref.set(p.some))
+      clientSideChannel <- setup(endpoint)
+      clientStub = ClientStub(TestServer, clientSideChannel)
+      _ <- clientStub.ping("hello").toStream
+      result <- ref.discrete.dropWhile(_.isEmpty).take(1)
+    } yield {
+      expect.same(result, Some("hello"))
     }
   }
 }

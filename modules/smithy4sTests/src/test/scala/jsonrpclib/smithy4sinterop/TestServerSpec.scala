@@ -13,11 +13,16 @@ import jsonrpclib.fs2._
 import test.GreetOutput
 import io.circe.Encoder
 import test.GreetInput
+import test.NotWelcomeError
 import io.circe.Decoder
 import smithy4s.Service
 import jsonrpclib.Monadic
 import test.PingInput
 import fs2.concurrent.SignallingRef
+import test.TestServerOperation
+import test.TestServerOperation.GreetError
+import jsonrpclib.ErrorPayload
+import jsonrpclib.Payload
 
 object TestServerSpec extends SimpleIOSuite {
   def testRes(name: TestName)(run: Stream[IO, Expectations]): Unit =
@@ -121,6 +126,33 @@ object TestServerSpec extends SimpleIOSuite {
       result <- ref.discrete.dropWhile(_.isEmpty).take(1)
     } yield {
       expect.same(result, "Returned to sender: hi server".some)
+    }
+  }
+
+  testRes("server returns error") {
+    implicit val greetInputEncoder: Encoder[GreetInput] = CirceJson.fromSchema
+    implicit val greetOutputDecoder: Decoder[GreetOutput] = CirceJson.fromSchema
+    implicit val greetErrorEncoder: Encoder[TestServerOperation.GreetError] = CirceJson.fromSchema
+
+    for {
+      clientSideChannel <- setup(_ => {
+        AlgebraWrapper(new TestServer[IO] {
+          override def greet(name: String): IO[GreetOutput] = IO.raiseError(NotWelcomeError(s"$name is not welcome"))
+
+          override def ping(ping: String): IO[Unit] = ???
+        })
+      })
+      remoteFunction = clientSideChannel.simpleStub[GreetInput, GreetOutput]("greet")
+      result <- remoteFunction(GreetInput("Alice")).attempt.toStream
+    } yield {
+      matches(result) { case Left(t: ErrorPayload) =>
+        expect.same(t.code, 0) &&
+        expect.same(t.message, "test.NotWelcomeError(Alice is not welcome)") &&
+        expect.same(
+          t.data,
+          Payload(greetErrorEncoder.apply(GreetError.notWelcomeError(NotWelcomeError(s"Alice is not welcome")))).some
+        )
+      }
     }
   }
 }
