@@ -1,11 +1,14 @@
 package jsonrpclib
 
-trait ErrorCodec[E] {
-
+trait ErrorEncoder[E] {
   def encode(a: E): ErrorPayload
-  def decode(error: ErrorPayload): Either[ProtocolError, E]
-
 }
+
+trait ErrorDecoder[E] {
+  def decode(error: ErrorPayload): Either[ProtocolError, E]
+}
+
+trait ErrorCodec[E] extends ErrorDecoder[E] with ErrorEncoder[E]
 
 object ErrorCodec {
   implicit val errorPayloadCodec: ErrorCodec[ErrorPayload] = new ErrorCodec[ErrorPayload] {

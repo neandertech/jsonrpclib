@@ -16,7 +16,7 @@ inThisBuild(
 )
 
 val scala213 = "2.13.16"
-val scala3 = "3.3.5"
+val scala3 = "3.3.6"
 val jdkVersion = 11
 val allScalaVersions = List(scala213, scala3)
 val jvmScalaVersions = allScalaVersions
@@ -40,7 +40,7 @@ val commonSettings = Seq(
       case Some((2, _)) => Seq(s"-target:jvm-$jdkVersion")
       case _            => Seq(s"-java-output-version:$jdkVersion")
     }
-  }
+  },
 )
 
 val commonJvmSettings = Seq(
@@ -132,6 +132,23 @@ val smithy4s = projectMatrix
     mimaPreviousArtifacts := Set.empty,
     libraryDependencies ++= Seq(
       "com.disneystreaming.smithy4s" %%% "smithy4s-json" % smithy4sVersion.value
+    ),
+    buildTimeProtocolDependency
+  )
+
+val smithy4sTests = projectMatrix
+  .in(file("modules") / "smithy4sTests")
+  .jvmPlatform(jvmScalaVersions, commonJvmSettings)
+  .jsPlatform(jsScalaVersions)
+  .nativePlatform(Seq(scala3))
+  .disablePlugins(AssemblyPlugin)
+  .enablePlugins(Smithy4sCodegenPlugin)
+  .dependsOn(smithy4s, fs2 % Test)
+  .settings(
+    commonSettings,
+    publish / skip := true,
+    libraryDependencies ++= Seq(
+      "io.circe" %%% "circe-generic" % "0.14.7"
     ),
     buildTimeProtocolDependency
   )
@@ -235,6 +252,7 @@ val root = project
       exampleClient,
       smithy,
       smithy4s,
+      smithy4sTests,
       exampleSmithyShared,
       exampleSmithyServer,
       exampleSmithyClient

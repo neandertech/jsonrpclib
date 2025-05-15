@@ -6,8 +6,9 @@ import jsonrpclib.Endpoint.RequestResponseEndpoint
 import jsonrpclib.OutputMessage.ErrorMessage
 import jsonrpclib.OutputMessage.ResponseMessage
 import scala.util.Try
-import io.circe.Codec
 import io.circe.HCursor
+import io.circe.Encoder
+import io.circe.Decoder
 
 private[jsonrpclib] abstract class MessageDispatcher[F[_]](implicit F: Monadic[F]) extends Channel.MonadicChannel[F] {
 
@@ -22,7 +23,7 @@ private[jsonrpclib] abstract class MessageDispatcher[F[_]](implicit F: Monadic[F
   protected def storePendingCall(callId: CallId, handle: OutputMessage => F[Unit]): F[Unit]
   protected def removePendingCall(callId: CallId): F[Option[OutputMessage => F[Unit]]]
 
-  def notificationStub[In](method: String)(implicit inCodec: Codec[In]): In => F[Unit] = { (input: In) =>
+  def notificationStub[In](method: String)(implicit inCodec: Encoder[In]): In => F[Unit] = { (input: In) =>
     val encoded = inCodec(input)
     val message = InputMessage.NotificationMessage(method, Some(Payload(encoded)))
     sendMessage(message)
@@ -30,13 +31,13 @@ private[jsonrpclib] abstract class MessageDispatcher[F[_]](implicit F: Monadic[F
 
   def stub[In, Err, Out](
       method: String
-  )(implicit inCodec: Codec[In], errCodec: ErrorCodec[Err], outCodec: Codec[Out]): In => F[Either[Err, Out]] = {
+  )(implicit inCodec: Encoder[In], errDecoder: ErrorDecoder[Err], outCodec: Decoder[Out]): In => F[Either[Err, Out]] = {
     (input: In) =>
       val encoded = inCodec(input)
       doFlatMap(nextCallId()) { callId =>
         val message = InputMessage.RequestMessage(method, callId, Some(Payload(encoded)))
         doFlatMap(createPromise[Either[Err, Out]](callId)) { case (fulfill, future) =>
-          val pc = createPendingCall(errCodec, outCodec, fulfill)
+          val pc = createPendingCall(errDecoder, outCodec, fulfill)
           doFlatMap(storePendingCall(callId, pc))(_ => doFlatMap(sendMessage(message))(_ => future()))
         }
       }
@@ -80,13 +81,17 @@ private[jsonrpclib] abstract class MessageDispatcher[F[_]](implicit F: Monadic[F
       case (InputMessage.RequestMessage(_, callId, Some(params)), ep: RequestResponseEndpoint[F, in, err, out]) =>
         ep.inCodec(HCursor.fromJson(params.data)) match {
           case Right(value) =>
-            doFlatMap(ep.run(input, value)) {
-              case Right(data) =>
+            doFlatMap(doAttempt(ep.run(input, value))) {
+              case Right(Right(data)) =>
                 val responseData = ep.outCodec(data)
                 sendMessage(OutputMessage.ResponseMessage(callId, Payload(responseData)))
-              case Left(error) =>
-                val errorPayload = ep.errCodec.encode(error)
+              case Right(Left(error)) =>
+                val errorPayload = ep.errEncoder.encode(error)
                 sendMessage(OutputMessage.ErrorMessage(callId, errorPayload))
+              case Left(err) =>
+                sendMessage(
+                  OutputMessage.ErrorMessage(callId, ErrorPayload(0, s"ServerInternalError: ${err.getMessage}", None))
+                )
             }
           case Left(pError) =>
             sendProtocolError(callId, ProtocolError.ParseError(pError.getMessage))
@@ -111,13 +116,13 @@ private[jsonrpclib] abstract class MessageDispatcher[F[_]](implicit F: Monadic[F
   }
 
   private def createPendingCall[Err, Out](
-      errCodec: ErrorCodec[Err],
-      outCodec: Codec[Out],
+      errDecoder: ErrorDecoder[Err],
+      outCodec: Decoder[Out],
       fulfill: Try[Either[Err, Out]] => F[Unit]
   ): OutputMessage => F[Unit] = { (message: OutputMessage) =>
     message match {
       case ErrorMessage(_, errorPayload) =>
-        errCodec.decode(errorPayload) match {
+        errDecoder.decode(errorPayload) match {
           case Left(_)      => fulfill(scala.util.Failure(errorPayload))
           case Right(value) => fulfill(scala.util.Success(Left(value)))
         }

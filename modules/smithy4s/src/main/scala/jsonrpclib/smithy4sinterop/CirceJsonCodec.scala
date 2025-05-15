@@ -7,7 +7,7 @@ import smithy4s.codecs.PayloadPath
 import smithy4s.Document.{Decoder => _, _}
 import io.circe._
 
-private[jsonrpclib] object CirceJson {
+object CirceJsonCodec {
 
   def fromSchema[A](implicit schema: Schema[A]): Codec[A] = Codec.from(
     c => {

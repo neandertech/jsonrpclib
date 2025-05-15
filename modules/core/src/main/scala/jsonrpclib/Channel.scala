@@ -1,14 +1,16 @@
 package jsonrpclib
 
-import io.circe.Codec
+import jsonrpclib.ErrorCodec.errorPayloadCodec
+import io.circe.Encoder
+import io.circe.Decoder
 
 trait Channel[F[_]] {
   def mountEndpoint(endpoint: Endpoint[F]): F[Unit]
   def unmountEndpoint(method: String): F[Unit]
 
-  def notificationStub[In: Codec](method: String): In => F[Unit]
-  def simpleStub[In: Codec, Out: Codec](method: String): In => F[Out]
-  def stub[In: Codec, Err: ErrorCodec, Out: Codec](method: String): In => F[Either[Err, Out]]
+  def notificationStub[In: Encoder](method: String): In => F[Unit]
+  def simpleStub[In: Encoder, Out: Decoder](method: String): In => F[Out]
+  def stub[In: Encoder, Err: ErrorDecoder, Out: Decoder](method: String): In => F[Either[Err, Out]]
   def stub[In, Err, Out](template: StubTemplate[In, Err, Out]): In => F[Either[Err, Out]]
 }
 
@@ -27,7 +29,7 @@ object Channel {
           (in: In) => F.doFlatMap(stub(in))(unit => F.doPure(Right(unit)))
       }
 
-    final def simpleStub[In: Codec, Out: Codec](method: String): In => F[Out] = {
+    final def simpleStub[In: Encoder, Out: Decoder](method: String): In => F[Out] = {
       val s = stub[In, ErrorPayload, Out](method)
       (in: In) =>
         F.doFlatMap(s(in)) {

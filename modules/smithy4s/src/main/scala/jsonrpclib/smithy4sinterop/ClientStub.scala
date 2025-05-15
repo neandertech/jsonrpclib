@@ -34,8 +34,8 @@ private class ClientStub[Alg[_[_, _, _, _, _]], F[_]: Monadic](val service: Serv
       endpointSpec: EndpointSpec
   ): I => F[O] = {
 
-    implicit val inputCodec: Codec[I] = CirceJson.fromSchema(smithy4sEndpoint.input)
-    implicit val outputCodec: Codec[O] = CirceJson.fromSchema(smithy4sEndpoint.output)
+    implicit val inputCodec: Codec[I] = CirceJsonCodec.fromSchema(smithy4sEndpoint.input)
+    implicit val outputCodec: Codec[O] = CirceJsonCodec.fromSchema(smithy4sEndpoint.output)
 
     endpointSpec match {
       case EndpointSpec.Notification(methodName) =>
