@@ -129,7 +129,7 @@ object TestServerSpec extends SimpleIOSuite {
     }
   }
 
-  testRes("server returns error") {
+  testRes("server returns known error") {
     implicit val greetInputEncoder: Encoder[GreetInput] = CirceJson.fromSchema
     implicit val greetOutputDecoder: Decoder[GreetOutput] = CirceJson.fromSchema
     implicit val greetErrorEncoder: Encoder[TestServerOperation.GreetError] = CirceJson.fromSchema
@@ -152,6 +152,29 @@ object TestServerSpec extends SimpleIOSuite {
           t.data,
           Payload(greetErrorEncoder.apply(GreetError.notWelcomeError(NotWelcomeError(s"Alice is not welcome")))).some
         )
+      }
+    }
+  }
+
+  testRes("server returns unknown error") {
+    implicit val greetInputEncoder: Encoder[GreetInput] = CirceJson.fromSchema
+    implicit val greetOutputDecoder: Decoder[GreetOutput] = CirceJson.fromSchema
+
+    for {
+      clientSideChannel <- setup(_ => {
+        AlgebraWrapper(new TestServer[IO] {
+          override def greet(name: String): IO[GreetOutput] = IO.raiseError(new RuntimeException("some other error"))
+
+          override def ping(ping: String): IO[Unit] = ???
+        })
+      })
+      remoteFunction = clientSideChannel.simpleStub[GreetInput, GreetOutput]("greet")
+      result <- remoteFunction(GreetInput("Alice")).attempt.toStream
+    } yield {
+      matches(result) { case Left(t: ErrorPayload) =>
+        expect.same(t.code, 0) &&
+        expect.same(t.message, "ServerInternalError: some other error") &&
+        expect.same(t.data, none)
       }
     }
   }

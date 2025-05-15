@@ -81,13 +81,17 @@ private[jsonrpclib] abstract class MessageDispatcher[F[_]](implicit F: Monadic[F
       case (InputMessage.RequestMessage(_, callId, Some(params)), ep: RequestResponseEndpoint[F, in, err, out]) =>
         ep.inCodec(HCursor.fromJson(params.data)) match {
           case Right(value) =>
-            doFlatMap(ep.run(input, value)) {
-              case Right(data) =>
+            doFlatMap(doAttempt(ep.run(input, value))) {
+              case Right(Right(data)) =>
                 val responseData = ep.outCodec(data)
                 sendMessage(OutputMessage.ResponseMessage(callId, Payload(responseData)))
-              case Left(error) =>
+              case Right(Left(error)) =>
                 val errorPayload = ep.errEncoder.encode(error)
                 sendMessage(OutputMessage.ErrorMessage(callId, errorPayload))
+              case Left(err) =>
+                sendMessage(
+                  OutputMessage.ErrorMessage(callId, ErrorPayload(0, s"ServerInternalError: ${err.getMessage}", None))
+                )
             }
           case Left(pError) =>
             sendProtocolError(callId, ProtocolError.ParseError(pError.getMessage))
