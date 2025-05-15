@@ -35,8 +35,8 @@ object ServerEndpoints {
       impl: FunctorInterpreter[Op, F]
   ): Endpoint[F] = {
 
-    implicit val inputCodec: Codec[I] = CirceJson.fromSchema(smithy4sEndpoint.input)
-    implicit val outputCodec: Codec[O] = CirceJson.fromSchema(smithy4sEndpoint.output)
+    implicit val inputCodec: Codec[I] = CirceJsonCodec.fromSchema(smithy4sEndpoint.input)
+    implicit val outputCodec: Codec[O] = CirceJsonCodec.fromSchema(smithy4sEndpoint.output)
 
     def errorResponse(throwable: Throwable): F[E] = throwable match {
       case smithy4sEndpoint.Error((_, e)) => e.pure
@@ -70,7 +70,7 @@ object ServerEndpoints {
   }
 
   private def errorCodecFromSchema[A](s: ErrorSchema[A]): ErrorEncoder[A] = {
-    val circeCodec = CirceJson.fromSchema(s.schema)
+    val circeCodec = CirceJsonCodec.fromSchema(s.schema)
     (a: A) =>
       ErrorPayload(
         0,

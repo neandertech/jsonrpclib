@@ -94,8 +94,8 @@ object TestServerSpec extends SimpleIOSuite {
   }
 
   testRes("Round trip") {
-    implicit val greetInputEncoder: Encoder[GreetInput] = CirceJson.fromSchema
-    implicit val greetOutputDecoder: Decoder[GreetOutput] = CirceJson.fromSchema
+    implicit val greetInputEncoder: Encoder[GreetInput] = CirceJsonCodec.fromSchema
+    implicit val greetOutputDecoder: Decoder[GreetOutput] = CirceJsonCodec.fromSchema
 
     for {
       clientSideChannel <- setup(channel => {
@@ -110,7 +110,7 @@ object TestServerSpec extends SimpleIOSuite {
   }
 
   testRes("notification both ways") {
-    implicit val greetInputEncoder: Encoder[PingInput] = CirceJson.fromSchema
+    implicit val greetInputEncoder: Encoder[PingInput] = CirceJsonCodec.fromSchema
 
     for {
       ref <- SignallingRef[IO, Option[String]](none).toStream
@@ -130,9 +130,9 @@ object TestServerSpec extends SimpleIOSuite {
   }
 
   testRes("server returns known error") {
-    implicit val greetInputEncoder: Encoder[GreetInput] = CirceJson.fromSchema
-    implicit val greetOutputDecoder: Decoder[GreetOutput] = CirceJson.fromSchema
-    implicit val greetErrorEncoder: Encoder[TestServerOperation.GreetError] = CirceJson.fromSchema
+    implicit val greetInputEncoder: Encoder[GreetInput] = CirceJsonCodec.fromSchema
+    implicit val greetOutputDecoder: Decoder[GreetOutput] = CirceJsonCodec.fromSchema
+    implicit val greetErrorEncoder: Encoder[TestServerOperation.GreetError] = CirceJsonCodec.fromSchema
 
     for {
       clientSideChannel <- setup(_ => {
@@ -157,8 +157,8 @@ object TestServerSpec extends SimpleIOSuite {
   }
 
   testRes("server returns unknown error") {
-    implicit val greetInputEncoder: Encoder[GreetInput] = CirceJson.fromSchema
-    implicit val greetOutputDecoder: Decoder[GreetOutput] = CirceJson.fromSchema
+    implicit val greetInputEncoder: Encoder[GreetInput] = CirceJsonCodec.fromSchema
+    implicit val greetOutputDecoder: Decoder[GreetOutput] = CirceJsonCodec.fromSchema
 
     for {
       clientSideChannel <- setup(_ => {

@@ -37,8 +37,8 @@ object TestClientSpec extends SimpleIOSuite {
   }
 
   testRes("Round trip") {
-    implicit val greetInputDecoder: Decoder[GreetInput] = CirceJson.fromSchema
-    implicit val greetOutputEncoder: Encoder[GreetOutput] = CirceJson.fromSchema
+    implicit val greetInputDecoder: Decoder[GreetInput] = CirceJsonCodec.fromSchema
+    implicit val greetOutputEncoder: Encoder[GreetOutput] = CirceJsonCodec.fromSchema
     val endpoint: Endpoint[IO] =
       Endpoint[IO]("greet").simple[GreetInput, GreetOutput](in => IO(GreetOutput(s"Hello ${in.name}")))
 
@@ -52,7 +52,7 @@ object TestClientSpec extends SimpleIOSuite {
   }
 
   testRes("Sending notification") {
-    implicit val pingInputDecoder: Decoder[PingInput] = CirceJson.fromSchema
+    implicit val pingInputDecoder: Decoder[PingInput] = CirceJsonCodec.fromSchema
 
     for {
       ref <- SignallingRef[IO, Option[PingInput]](none).toStream
