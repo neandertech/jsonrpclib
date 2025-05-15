@@ -41,14 +41,6 @@ val commonSettings = Seq(
       case _            => Seq(s"-java-output-version:$jdkVersion")
     }
   },
-  bspEnabled := {
-    val id = thisProjectRef.value.project
-    val isScala3 = scalaVersion.value.startsWith("3.")
-    val isJS = id.contains("JS")
-    val isNative = id.contains("Native")
-
-    isScala3 && !isJS && !isNative
-  }
 )
 
 val commonJvmSettings = Seq(
@@ -198,7 +190,7 @@ val exampleClient = projectMatrix
 
 val exampleSmithyShared = projectMatrix
   .in(file("modules") / "examples/smithyShared")
-  .jvmPlatform(List(scala3), commonJvmSettings)
+  .jvmPlatform(List(scala213), commonJvmSettings)
   .dependsOn(smithy4s, fs2)
   .enablePlugins(Smithy4sCodegenPlugin)
   .settings(
@@ -210,7 +202,7 @@ val exampleSmithyShared = projectMatrix
 
 val exampleSmithyServer = projectMatrix
   .in(file("modules") / "examples/smithyServer")
-  .jvmPlatform(List(scala3), commonJvmSettings)
+  .jvmPlatform(List(scala213), commonJvmSettings)
   .dependsOn(exampleSmithyShared)
   .settings(
     commonSettings,
@@ -230,10 +222,10 @@ val exampleSmithyServer = projectMatrix
 val exampleSmithyClient = projectMatrix
   .in(file("modules") / "examples/smithyClient")
   .jvmPlatform(
-    List(scala3),
+    List(scala213),
     Seq(
       fork := true,
-      envVars += "SERVER_JAR" -> (exampleSmithyServer.jvm(scala3) / assembly).value.toString
+      envVars += "SERVER_JAR" -> (exampleSmithyServer.jvm(scala213) / assembly).value.toString
     ) ++ commonJvmSettings
   )
   .dependsOn(exampleSmithyShared)
