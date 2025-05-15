@@ -144,6 +144,23 @@ val smithy4s = projectMatrix
     buildTimeProtocolDependency
   )
 
+val smithy4sTests = projectMatrix
+  .in(file("modules") / "smithy4sTests")
+  .jvmPlatform(jvmScalaVersions, commonJvmSettings)
+  .jsPlatform(jsScalaVersions)
+  .nativePlatform(Seq(scala3))
+  .disablePlugins(AssemblyPlugin)
+  .enablePlugins(Smithy4sCodegenPlugin)
+  .dependsOn(smithy4s, fs2 % Test)
+  .settings(
+    commonSettings,
+    publish / skip := true,
+    libraryDependencies ++= Seq(
+      "io.circe" %%% "circe-generic" % "0.14.7"
+    ),
+    buildTimeProtocolDependency
+  )
+
 val exampleServer = projectMatrix
   .in(file("modules") / "examples/server")
   .jvmPlatform(List(scala213), commonJvmSettings)
@@ -181,7 +198,7 @@ val exampleClient = projectMatrix
 
 val exampleSmithyShared = projectMatrix
   .in(file("modules") / "examples/smithyShared")
-  .jvmPlatform(List(scala213), commonJvmSettings)
+  .jvmPlatform(List(scala3), commonJvmSettings)
   .dependsOn(smithy4s, fs2)
   .enablePlugins(Smithy4sCodegenPlugin)
   .settings(
@@ -193,7 +210,7 @@ val exampleSmithyShared = projectMatrix
 
 val exampleSmithyServer = projectMatrix
   .in(file("modules") / "examples/smithyServer")
-  .jvmPlatform(List(scala213), commonJvmSettings)
+  .jvmPlatform(List(scala3), commonJvmSettings)
   .dependsOn(exampleSmithyShared)
   .settings(
     commonSettings,
@@ -213,10 +230,10 @@ val exampleSmithyServer = projectMatrix
 val exampleSmithyClient = projectMatrix
   .in(file("modules") / "examples/smithyClient")
   .jvmPlatform(
-    List(scala213),
+    List(scala3),
     Seq(
       fork := true,
-      envVars += "SERVER_JAR" -> (exampleSmithyServer.jvm(scala213) / assembly).value.toString
+      envVars += "SERVER_JAR" -> (exampleSmithyServer.jvm(scala3) / assembly).value.toString
     ) ++ commonJvmSettings
   )
   .dependsOn(exampleSmithyShared)
@@ -243,6 +260,7 @@ val root = project
       exampleClient,
       smithy,
       smithy4s,
+      smithy4sTests,
       exampleSmithyShared,
       exampleSmithyServer,
       exampleSmithyClient

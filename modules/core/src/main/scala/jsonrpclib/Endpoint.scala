@@ -1,7 +1,8 @@
 package jsonrpclib
 
-import io.circe.Codec
 import jsonrpclib.ErrorCodec.errorPayloadCodec
+import io.circe.Decoder
+import io.circe.Encoder
 
 sealed trait Endpoint[F[_]] {
   def method: String
@@ -19,17 +20,17 @@ object Endpoint {
   class PartiallyAppliedEndpoint[F[_]](method: MethodPattern) {
     def apply[In, Err, Out](
         run: In => F[Either[Err, Out]]
-    )(implicit inCodec: Codec[In], errEncoder: ErrorEncoder[Err], outCodec: Codec[Out]): Endpoint[F] =
+    )(implicit inCodec: Decoder[In], errEncoder: ErrorEncoder[Err], outCodec: Encoder[Out]): Endpoint[F] =
       RequestResponseEndpoint(method, (_: InputMessage, in: In) => run(in), inCodec, errEncoder, outCodec)
 
     def full[In, Err, Out](
         run: (InputMessage, In) => F[Either[Err, Out]]
-    )(implicit inCodec: Codec[In], errEncoder: ErrorEncoder[Err], outCodec: Codec[Out]): Endpoint[F] =
+    )(implicit inCodec: Decoder[In], errEncoder: ErrorEncoder[Err], outCodec: Encoder[Out]): Endpoint[F] =
       RequestResponseEndpoint(method, run, inCodec, errEncoder, outCodec)
 
     def simple[In, Out](
         run: In => F[Out]
-    )(implicit F: Monadic[F], inCodec: Codec[In], outCodec: Codec[Out]) =
+    )(implicit F: Monadic[F], inCodec: Decoder[In], outCodec: Encoder[Out]) =
       apply[In, ErrorPayload, Out](in =>
         F.doFlatMap(F.doAttempt(run(in))) {
           case Left(error)  => F.doPure(Left(ErrorPayload(-32000, error.getMessage(), None)))
@@ -37,10 +38,10 @@ object Endpoint {
         }
       )
 
-    def notification[In](run: In => F[Unit])(implicit inCodec: Codec[In]): Endpoint[F] =
+    def notification[In](run: In => F[Unit])(implicit inCodec: Decoder[In]): Endpoint[F] =
       NotificationEndpoint(method, (_: InputMessage, in: In) => run(in), inCodec)
 
-    def notificationFull[In](run: (InputMessage, In) => F[Unit])(implicit inCodec: Codec[In]): Endpoint[F] =
+    def notificationFull[In](run: (InputMessage, In) => F[Unit])(implicit inCodec: Decoder[In]): Endpoint[F] =
       NotificationEndpoint(method, run, inCodec)
 
   }
@@ -48,7 +49,7 @@ object Endpoint {
   private[jsonrpclib] final case class NotificationEndpoint[F[_], In](
       method: MethodPattern,
       run: (InputMessage, In) => F[Unit],
-      inCodec: Codec[In]
+      inCodec: Decoder[In]
   ) extends Endpoint[F] {
 
     def mapK[G[_]](f: PolyFunction[F, G]): Endpoint[G] =
@@ -58,9 +59,9 @@ object Endpoint {
   private[jsonrpclib] final case class RequestResponseEndpoint[F[_], In, Err, Out](
       method: Method,
       run: (InputMessage, In) => F[Either[Err, Out]],
-      inCodec: Codec[In],
+      inCodec: Decoder[In],
       errEncoder: ErrorEncoder[Err],
-      outCodec: Codec[Out]
+      outCodec: Encoder[Out]
   ) extends Endpoint[F] {
 
     def mapK[G[_]](f: PolyFunction[F, G]): Endpoint[G] =

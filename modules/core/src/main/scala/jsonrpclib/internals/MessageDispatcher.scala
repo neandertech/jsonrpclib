@@ -6,8 +6,9 @@ import jsonrpclib.Endpoint.RequestResponseEndpoint
 import jsonrpclib.OutputMessage.ErrorMessage
 import jsonrpclib.OutputMessage.ResponseMessage
 import scala.util.Try
-import io.circe.Codec
 import io.circe.HCursor
+import io.circe.Encoder
+import io.circe.Decoder
 
 private[jsonrpclib] abstract class MessageDispatcher[F[_]](implicit F: Monadic[F]) extends Channel.MonadicChannel[F] {
 
@@ -22,7 +23,7 @@ private[jsonrpclib] abstract class MessageDispatcher[F[_]](implicit F: Monadic[F
   protected def storePendingCall(callId: CallId, handle: OutputMessage => F[Unit]): F[Unit]
   protected def removePendingCall(callId: CallId): F[Option[OutputMessage => F[Unit]]]
 
-  def notificationStub[In](method: String)(implicit inCodec: Codec[In]): In => F[Unit] = { (input: In) =>
+  def notificationStub[In](method: String)(implicit inCodec: Encoder[In]): In => F[Unit] = { (input: In) =>
     val encoded = inCodec(input)
     val message = InputMessage.NotificationMessage(method, Some(Payload(encoded)))
     sendMessage(message)
@@ -30,7 +31,7 @@ private[jsonrpclib] abstract class MessageDispatcher[F[_]](implicit F: Monadic[F
 
   def stub[In, Err, Out](
       method: String
-  )(implicit inCodec: Codec[In], errDecoder: ErrorDecoder[Err], outCodec: Codec[Out]): In => F[Either[Err, Out]] = {
+  )(implicit inCodec: Encoder[In], errDecoder: ErrorDecoder[Err], outCodec: Decoder[Out]): In => F[Either[Err, Out]] = {
     (input: In) =>
       val encoded = inCodec(input)
       doFlatMap(nextCallId()) { callId =>
@@ -112,7 +113,7 @@ private[jsonrpclib] abstract class MessageDispatcher[F[_]](implicit F: Monadic[F
 
   private def createPendingCall[Err, Out](
       errDecoder: ErrorDecoder[Err],
-      outCodec: Codec[Out],
+      outCodec: Decoder[Out],
       fulfill: Try[Either[Err, Out]] => F[Unit]
   ): OutputMessage => F[Unit] = { (message: OutputMessage) =>
     message match {
