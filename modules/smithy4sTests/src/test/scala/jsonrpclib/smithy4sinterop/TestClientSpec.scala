@@ -62,7 +62,7 @@ object TestClientSpec extends SimpleIOSuite {
       _ <- clientStub.ping("hello").toStream
       result <- ref.discrete.dropWhile(_.isEmpty).take(1)
     } yield {
-      expect.same(result, Some("hello"))
+      expect.same(result, Some(PingInput("hello")))
     }
   }
 }
