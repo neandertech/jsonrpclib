@@ -33,7 +33,7 @@ object Endpoint {
     )(implicit F: Monadic[F], inCodec: Decoder[In], outCodec: Encoder[Out]) =
       apply[In, ErrorPayload, Out](in =>
         F.doFlatMap(F.doAttempt(run(in))) {
-          case Left(error)  => F.doPure(Left(ErrorPayload(-32000, error.getMessage(), None)))
+          case Left(error)  => F.doPure(Left(ErrorPayload(0, error.getMessage(), None)))
           case Right(value) => F.doPure(Right(value))
         }
       )

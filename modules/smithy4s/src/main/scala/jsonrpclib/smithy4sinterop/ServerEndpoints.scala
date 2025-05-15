@@ -5,7 +5,6 @@ import jsonrpclib.Endpoint
 import smithy4s.Service
 import smithy4s.kinds.FunctorAlgebra
 import smithy4s.kinds.FunctorInterpreter
-import smithy4s.schema.Schema
 import jsonrpclib.Monadic
 import jsonrpclib.Payload
 import jsonrpclib.ErrorPayload
@@ -74,7 +73,7 @@ object ServerEndpoints {
     val circeCodec = CirceJson.fromSchema(s.schema)
     (a: A) =>
       ErrorPayload(
-        -32000,
+        0,
         Option(s.unliftError(a).getMessage()).getOrElse("JSONRPC-smithy4s application error"),
         Some(Payload(circeCodec.apply(a)))
       )
