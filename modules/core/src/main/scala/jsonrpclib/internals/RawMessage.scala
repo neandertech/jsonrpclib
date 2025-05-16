@@ -63,7 +63,7 @@ private[jsonrpclib] object RawMessage {
           "params" -> msg.params.asJson,
           "error" -> msg.error.asJson,
           "id" -> msg.id.asJson
-        ) ++ {
+        ).filterNot(_._2.isNull) ++ {
           msg.result match {
             case Some(Some(payload)) => List("result" -> payload.asJson)
             case Some(None)          => List("result" -> Json.Null)
