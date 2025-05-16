@@ -19,6 +19,13 @@ import scala.util.Try
 import _root_.fs2.Pipe
 import _root_.fs2.Stream
 
+/** A JSON-RPC communication channel built on top of `fs2.Stream`.
+  *
+  * `FS2Channel[F]` enables streaming JSON-RPC messages into and out of an effectful system. It provides methods to
+  * register handlers (`Endpoint[F]`) for specific method names.
+  *
+  * This is the primary server-side integration point for using JSON-RPC over FS2.
+  */
 trait FS2Channel[F[_]] extends Channel[F] {
 
   def input: Pipe[F, Message, Unit]
@@ -49,6 +56,20 @@ trait FS2Channel[F[_]] extends Channel[F] {
 
 object FS2Channel {
 
+  /** Creates a new `FS2Channel[F]` as a managed resource with a configurable buffer size for bidirectional message
+    * processing.
+    *
+    * Optionally, a `CancelTemplate` can be provided to support client-initiated cancellation of inflight requests via a
+    * dedicated cancellation endpoint.
+    *
+    * @param bufferSize
+    *   Size of the internal outbound message queue (default: 2048)
+    * @param cancelTemplate
+    *   Optional handler that defines how to decode and handle cancellation requests
+    *
+    * @return
+    *   A `Resource` that manages the lifecycle of the channel and its internal supervisor
+    */
   def resource[F[_]: Concurrent](
       bufferSize: Int = 2048,
       cancelTemplate: Option[CancelTemplate] = None

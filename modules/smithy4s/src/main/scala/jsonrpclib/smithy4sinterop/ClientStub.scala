@@ -10,6 +10,19 @@ import smithy4s.ShapeId
 
 object ClientStub {
 
+  /** Creates a JSON-RPC client implementation for a Smithy service.
+    *
+    * Given a Smithy `Service[Alg]` and a JSON-RPC communication `Channel[F]`, this constructs a fully functional client
+    * that translates method calls into JSON-RPC messages sent over the channel.
+    *
+    * Usage:
+    * {{{
+    *   val stub: MyService[IO] = ClientStub(myService, myChannel)
+    *   val response: IO[String] = stub.hello("world")
+    * }}}
+    *
+    * Supports both standard request-response and fire-and-forget notification endpoints.
+    */
   def apply[Alg[_[_, _, _, _, _]], F[_]: Monadic](service: Service[Alg], channel: Channel[F]): service.Impl[F] =
     new ClientStub(service, channel).compile
 }

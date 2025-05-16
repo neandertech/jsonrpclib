@@ -8,6 +8,11 @@ import smithy4s.Schema
 
 object CirceJsonCodec {
 
+  /** Creates a Circe `Codec[A]` from a Smithy4s `Schema[A]`.
+    *
+    * This enables encoding values of type `A` to JSON and decoding JSON back into `A`, using the structure defined by
+    * the Smithy schema.
+    */
   def fromSchema[A](implicit schema: Schema[A]): Codec[A] = Codec.from(
     c => {
       c.as[Json]

@@ -16,6 +16,19 @@ import _root_.smithy4s.{Endpoint => Smithy4sEndpoint}
 
 object ServerEndpoints {
 
+  /** Creates JSON-RPC server endpoints from a Smithy service implementation.
+    *
+    * Given a Smithy `FunctorAlgebra[Alg, F]`, this extracts all operations and compiles them into JSON-RPC
+    * `Endpoint[F]` handlers that can be mounted on a communication channel (e.g. `FS2Channel`).
+    *
+    * Supports both standard request-response and notification-style endpoints, as well as Smithy-modeled errors.
+    *
+    * Usage:
+    * {{{
+    * val endpoints = ServerEndpoints(new ServerImpl)
+    * channel.withEndpoints(endpoints)
+    * }}}
+    */
   def apply[Alg[_[_, _, _, _, _]], F[_]](
       impl: FunctorAlgebra[Alg, F]
   )(implicit service: Service[Alg], F: Monadic[F]): List[Endpoint[F]] = {
@@ -30,7 +43,21 @@ object ServerEndpoints {
     }
   }
 
-  def jsonRPCEndpoint[F[_]: Monadic, Op[_, _, _, _, _], I, E, O, SI, SO](
+  /** Constructs a JSON-RPC endpoint from a Smithy endpoint definition.
+    *
+    * Translates a single Smithy4s endpoint into a JSON-RPC `Endpoint[F]`, based on the method name and interaction type
+    * described in `EndpointSpec`.
+    *
+    * @param smithy4sEndpoint
+    *   The Smithy4s endpoint to expose over JSON-RPC
+    * @param endpointSpec
+    *   JSON-RPC method name and interaction hints
+    * @param impl
+    *   Interpreter that executes the Smithy operation in `F`
+    * @return
+    *   A JSON-RPC-compatible `Endpoint[F]`
+    */
+  private def jsonRPCEndpoint[F[_]: Monadic, Op[_, _, _, _, _], I, E, O, SI, SO](
       smithy4sEndpoint: Smithy4sEndpoint[Op, I, E, O, SI, SO],
       endpointSpec: EndpointSpec,
       impl: FunctorInterpreter[Op, F]

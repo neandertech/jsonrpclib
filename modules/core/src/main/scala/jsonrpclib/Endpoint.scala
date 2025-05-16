@@ -4,9 +4,28 @@ import io.circe.Decoder
 import io.circe.Encoder
 import jsonrpclib.ErrorCodec.errorPayloadCodec
 
+/** Represents a JSON-RPC method handler that can be invoked by the server.
+  *
+  * An `Endpoint[F]` defines how to decode input from a JSON-RPC message, execute some effectful logic, and optionally
+  * return a response.
+  *
+  * The endpoint's `method` field is used to match incoming JSON-RPC requests.
+  */
 sealed trait Endpoint[F[_]] {
+
+  /** The JSON-RPC method name this endpoint responds to. Used for dispatching incoming requests. */
   def method: String
 
+  /** Transforms the effect type of this endpoint using the provided `PolyFunction`.
+    *
+    * This allows reinterpreting the endpoint’s logic in a different effect context (e.g., from `IO` to `Kleisli[IO,
+    * Ctx, *]`, or from `F` to `EitherT[F, E, *]`).
+    *
+    * @param f
+    *   A polymorphic function that transforms `F[_]` into `G[_]`
+    * @return
+    *   A new `Endpoint[G]` with the same behavior but in a new effect type
+    */
   def mapK[G[_]](f: PolyFunction[F, G]): Endpoint[G]
 }
 
