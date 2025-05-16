@@ -1,31 +1,31 @@
 package jsonrpclib.smithy4sinterop
 
 import cats.effect.IO
-import fs2.Stream
-import test.TestServer
-import test.TestClient
-import test.WeatherService
-import weaver._
-import smithy4s.kinds.FunctorAlgebra
 import cats.syntax.all._
-
-import scala.concurrent.duration._
-import jsonrpclib.fs2._
-import test.GreetOutput
-import io.circe.Encoder
-import test.GreetInput
-import test.GetWeatherOutput
-import test.GetWeatherInput
-import test.NotWelcomeError
-import io.circe.Decoder
-import smithy4s.Service
-import jsonrpclib.Monadic
-import test.PingInput
 import fs2.concurrent.SignallingRef
+import fs2.Stream
+import io.circe.Decoder
+import io.circe.Encoder
+import jsonrpclib.fs2._
+import jsonrpclib.ErrorPayload
+import jsonrpclib.Monadic
+import jsonrpclib.Payload
+import smithy4s.kinds.FunctorAlgebra
+import smithy4s.Service
+import test.GetWeatherInput
+import test.GetWeatherOutput
+import test.GreetInput
+import test.GreetOutput
+import test.NotWelcomeError
+import test.PingInput
+import test.TestClient
+import test.TestServer
 import test.TestServerOperation
 import test.TestServerOperation.GreetError
-import jsonrpclib.ErrorPayload
-import jsonrpclib.Payload
+import test.WeatherService
+import weaver._
+
+import scala.concurrent.duration._
 
 object TestServerSpec extends SimpleIOSuite {
   def testRes(name: TestName)(run: Stream[IO, Expectations]): Unit =

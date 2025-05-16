@@ -1,19 +1,20 @@
 package jsonrpclib.smithy4sinterop
 
 import cats.effect.IO
+import cats.syntax.all._
 import fs2.Stream
+import io.circe.Decoder
+import io.circe.Encoder
 import jsonrpclib._
+import jsonrpclib.fs2._
+import test.GreetInput
+import test.GreetOutput
+import test.PingInput
 import test.TestServer
 import weaver._
-import cats.syntax.all._
 
 import scala.concurrent.duration._
-import jsonrpclib.fs2._
-import test.GreetOutput
-import io.circe.Encoder
-import test.GreetInput
-import io.circe.Decoder
-import test.PingInput
+
 import _root_.fs2.concurrent.SignallingRef
 
 object TestClientSpec extends SimpleIOSuite {

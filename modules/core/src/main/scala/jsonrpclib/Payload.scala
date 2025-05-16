@@ -1,6 +1,8 @@
 package jsonrpclib
 
-import io.circe.{Decoder, Encoder, Json}
+import io.circe.Decoder
+import io.circe.Encoder
+import io.circe.Json
 
 case class Payload(data: Json) {
   def stripNull: Option[Payload] = Option(Payload(data)).filter(p => !p.data.isNull)

@@ -1,17 +1,18 @@
 package jsonrpclib.smithy4sinterop
 
-import _root_.smithy4s.{Endpoint => Smithy4sEndpoint}
+import io.circe.Codec
 import jsonrpclib.Endpoint
-import smithy4s.Service
+import jsonrpclib.ErrorEncoder
+import jsonrpclib.ErrorPayload
+import jsonrpclib.Monadic
+import jsonrpclib.Monadic.syntax._
+import jsonrpclib.Payload
 import smithy4s.kinds.FunctorAlgebra
 import smithy4s.kinds.FunctorInterpreter
-import jsonrpclib.Monadic
-import jsonrpclib.Payload
-import jsonrpclib.ErrorPayload
-import io.circe.Codec
-import jsonrpclib.Monadic.syntax._
-import jsonrpclib.ErrorEncoder
 import smithy4s.schema.ErrorSchema
+import smithy4s.Service
+
+import _root_.smithy4s.{Endpoint => Smithy4sEndpoint}
 
 object ServerEndpoints {
 

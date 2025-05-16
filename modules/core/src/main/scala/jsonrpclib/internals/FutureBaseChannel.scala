@@ -1,5 +1,6 @@
 package jsonrpclib
 
+import io.circe.Encoder
 import jsonrpclib.internals._
 
 import java.util.concurrent.atomic.AtomicLong
@@ -7,7 +8,6 @@ import scala.concurrent.ExecutionContext
 import scala.concurrent.Future
 import scala.concurrent.Promise
 import scala.util.Try
-import io.circe.Encoder
 
 abstract class FutureBasedChannel(endpoints: List[Endpoint[Future]])(implicit ec: ExecutionContext)
     extends MessageDispatcher[Future] {

@@ -1,8 +1,8 @@
 package jsonrpclib
 
-import jsonrpclib.ErrorCodec.errorPayloadCodec
-import io.circe.Encoder
 import io.circe.Decoder
+import io.circe.Encoder
+import jsonrpclib.ErrorCodec.errorPayloadCodec
 
 trait Channel[F[_]] {
   def mountEndpoint(endpoint: Endpoint[F]): F[Unit]

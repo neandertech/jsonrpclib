@@ -1,8 +1,8 @@
 package jsonrpclib
 
-import jsonrpclib.ErrorCodec.errorPayloadCodec
 import io.circe.Decoder
 import io.circe.Encoder
+import jsonrpclib.ErrorCodec.errorPayloadCodec
 
 sealed trait Endpoint[F[_]] {
   def method: String

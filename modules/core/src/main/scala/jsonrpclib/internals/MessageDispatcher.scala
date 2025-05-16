@@ -1,14 +1,15 @@
 package jsonrpclib
 package internals
 
+import io.circe.Decoder
+import io.circe.Encoder
+import io.circe.HCursor
 import jsonrpclib.Endpoint.NotificationEndpoint
 import jsonrpclib.Endpoint.RequestResponseEndpoint
 import jsonrpclib.OutputMessage.ErrorMessage
 import jsonrpclib.OutputMessage.ResponseMessage
+
 import scala.util.Try
-import io.circe.HCursor
-import io.circe.Encoder
-import io.circe.Decoder
 
 private[jsonrpclib] abstract class MessageDispatcher[F[_]](implicit F: Monadic[F]) extends Channel.MonadicChannel[F] {
 

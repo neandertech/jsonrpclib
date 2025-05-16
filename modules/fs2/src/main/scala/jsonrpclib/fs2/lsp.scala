@@ -1,20 +1,22 @@
 package jsonrpclib.fs2
 
 import cats.MonadThrow
+import com.github.plokhotnyuk.jsoniter_scala.circe.JsoniterScalaCodec._
+import com.github.plokhotnyuk.jsoniter_scala.core._
 import fs2.Chunk
-import fs2.Stream
 import fs2.Pipe
+import fs2.Stream
+import io.circe.Decoder
+import io.circe.Encoder
+import io.circe.HCursor
+import io.circe.Json
+import jsonrpclib.Message
 import jsonrpclib.Payload
-import io.circe.{Encoder, Decoder, HCursor}
+import jsonrpclib.ProtocolError
+
 import java.nio.charset.Charset
 import java.nio.charset.StandardCharsets
-import jsonrpclib.Message
-import jsonrpclib.ProtocolError
 import scala.annotation.tailrec
-
-import com.github.plokhotnyuk.jsoniter_scala.core._
-import com.github.plokhotnyuk.jsoniter_scala.circe.JsoniterScalaCodec._
-import io.circe.Json
 
 object lsp {
 

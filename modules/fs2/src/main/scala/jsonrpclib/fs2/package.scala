@@ -1,10 +1,11 @@
 package jsonrpclib
 
-import _root_.fs2.Stream
-import cats.MonadThrow
-import cats.Monad
-import cats.effect.kernel.Resource
 import cats.effect.kernel.MonadCancel
+import cats.effect.kernel.Resource
+import cats.Monad
+import cats.MonadThrow
+
+import _root_.fs2.Stream
 
 package object fs2 {
 

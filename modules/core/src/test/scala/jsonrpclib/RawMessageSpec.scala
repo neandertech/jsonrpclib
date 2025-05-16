@@ -1,13 +1,13 @@
 package jsonrpclib
 
-import weaver._
-import jsonrpclib.internals._
+import com.github.plokhotnyuk.jsoniter_scala.circe.JsoniterScalaCodec._
 import com.github.plokhotnyuk.jsoniter_scala.core._
+import io.circe.syntax._
+import io.circe.Json
+import jsonrpclib.internals._
 import jsonrpclib.CallId.NumberId
 import jsonrpclib.OutputMessage.ResponseMessage
-import io.circe.Json
-import com.github.plokhotnyuk.jsoniter_scala.circe.JsoniterScalaCodec._
-import io.circe.syntax._
+import weaver._
 
 object RawMessageSpec extends FunSuite {
   test("json parsing with null result") {

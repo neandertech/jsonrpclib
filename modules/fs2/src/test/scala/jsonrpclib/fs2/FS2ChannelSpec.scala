@@ -3,10 +3,10 @@ package jsonrpclib.fs2
 import cats.effect.IO
 import cats.syntax.all._
 import fs2.Stream
+import io.circe.generic.semiauto._
+import io.circe.Codec
 import jsonrpclib._
 import weaver._
-import io.circe.Codec
-import io.circe.generic.semiauto._
 
 import scala.concurrent.duration._
 

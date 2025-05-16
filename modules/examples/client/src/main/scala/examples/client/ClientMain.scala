@@ -2,13 +2,13 @@ package examples.client
 
 import cats.effect._
 import cats.syntax.all._
-import io.circe.Codec
-import io.circe.generic.semiauto._
-import fs2.Stream
 import fs2.io._
 import fs2.io.process.Processes
-import jsonrpclib.CallId
+import fs2.Stream
+import io.circe.generic.semiauto._
+import io.circe.Codec
 import jsonrpclib.fs2._
+import jsonrpclib.CallId
 
 object ClientMain extends IOApp.Simple {
 

@@ -1,11 +1,10 @@
 package jsonrpclib.smithy4sinterop
 
-import smithy4s.Document
-import smithy4s.Schema
-import smithy4s.codecs.PayloadPath
-
-import smithy4s.Document.{Decoder => _, _}
 import io.circe._
+import smithy4s.codecs.PayloadPath
+import smithy4s.Document
+import smithy4s.Document.{Decoder => _, _}
+import smithy4s.Schema
 
 object CirceJsonCodec {
 

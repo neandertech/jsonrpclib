@@ -1,10 +1,10 @@
 package jsonrpclib
 
-import weaver._
+import cats.syntax.all._
+import com.github.plokhotnyuk.jsoniter_scala.circe.JsoniterScalaCodec._
 import com.github.plokhotnyuk.jsoniter_scala.core._
 import io.circe.Json
-import com.github.plokhotnyuk.jsoniter_scala.circe.JsoniterScalaCodec._
-import cats.syntax.all._
+import weaver._
 
 object CallIdSpec extends FunSuite {
   test("json parsing") {

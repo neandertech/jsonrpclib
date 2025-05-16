@@ -1,22 +1,23 @@
 package jsonrpclib
 package fs2
 
-import _root_.fs2.Pipe
-import _root_.fs2.Stream
+import cats.effect.kernel._
+import cats.effect.std.Supervisor
+import cats.effect.syntax.all._
+import cats.effect.Fiber
+import cats.syntax.all._
 import cats.Applicative
 import cats.Functor
 import cats.Monad
 import cats.MonadThrow
-import cats.effect.Fiber
-import cats.effect.kernel._
-import cats.effect.std.Supervisor
-import cats.syntax.all._
-import cats.effect.syntax.all._
-import jsonrpclib.internals.MessageDispatcher
 import io.circe.Codec
+import jsonrpclib.internals.MessageDispatcher
 
-import scala.util.Try
 import java.util.regex.Pattern
+import scala.util.Try
+
+import _root_.fs2.Pipe
+import _root_.fs2.Stream
 
 trait FS2Channel[F[_]] extends Channel[F] {
 

@@ -1,7 +1,7 @@
 package jsonrpclib
 
-import scala.concurrent.Future
 import scala.concurrent.ExecutionContext
+import scala.concurrent.Future
 
 trait Monadic[F[_]] {
   def doFlatMap[A, B](fa: F[A])(f: A => F[B]): F[B]

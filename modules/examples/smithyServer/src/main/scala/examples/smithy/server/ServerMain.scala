@@ -1,12 +1,12 @@
 package examples.smithy.server
 
-import jsonrpclib.CallId
-import jsonrpclib.fs2._
 import cats.effect._
 import fs2.io._
-import test._ // smithy4s-generated package
+import jsonrpclib.fs2._
 import jsonrpclib.smithy4sinterop.ClientStub
 import jsonrpclib.smithy4sinterop.ServerEndpoints
+import jsonrpclib.CallId
+import test._ // smithy4s-generated package
 
 object ServerMain extends IOApp.Simple {
 

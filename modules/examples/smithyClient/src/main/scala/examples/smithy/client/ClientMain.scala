@@ -2,12 +2,12 @@ package examples.smithy.client
 
 import cats.effect._
 import cats.syntax.all._
+import fs2.io.process.Processes
 import fs2.Stream
-import jsonrpclib.CallId
 import jsonrpclib.fs2._
 import jsonrpclib.smithy4sinterop.ClientStub
 import jsonrpclib.smithy4sinterop.ServerEndpoints
-import fs2.io.process.Processes
+import jsonrpclib.CallId
 import test._
 
 object SmithyClientMain extends IOApp.Simple {

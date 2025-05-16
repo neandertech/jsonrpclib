@@ -1,6 +1,8 @@
 package jsonrpclib
 
-import io.circe.{Decoder, Json, Codec}
+import io.circe.Codec
+import io.circe.Decoder
+import io.circe.Json
 
 sealed trait CallId
 object CallId {

@@ -1,8 +1,10 @@
 package jsonrpclib
 package internals
 
-import io.circe.{Decoder, Encoder, Json}
 import io.circe.syntax._
+import io.circe.Decoder
+import io.circe.Encoder
+import io.circe.Json
 
 private[jsonrpclib] case class RawMessage(
     jsonrpc: String,
