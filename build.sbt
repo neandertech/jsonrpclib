@@ -102,6 +102,17 @@ val smithy = projectMatrix
     smithyTraitCodegenNamespace := "jsonrpclib"
   )
 
+val smithyTests = projectMatrix
+  .in(file("modules/smithy-tests"))
+  .jvmPlatform(Seq(scala213))
+  .dependsOn(smithy)
+  .settings(
+    publish / skip := true,
+    libraryDependencies ++= Seq(
+      "com.disneystreaming" %%% "weaver-cats" % "0.8.4" % Test
+    )
+  )
+
 lazy val buildTimeProtocolDependency =
   /** By default, smithy4sInternalDependenciesAsJars doesn't contain the jars in the "smithy4s" configuration. We have
     * to add them manually - this is the equivalent of a "% Smithy4s"-scoped dependency.
@@ -137,7 +148,7 @@ val smithy4s = projectMatrix
   )
 
 val smithy4sTests = projectMatrix
-  .in(file("modules") / "smithy4sTests")
+  .in(file("modules") / "smithy4s-tests")
   .jvmPlatform(jvmScalaVersions, commonJvmSettings)
   .jsPlatform(jsScalaVersions)
   .nativePlatform(Seq(scala3))
@@ -251,6 +262,7 @@ val root = project
       exampleServer,
       exampleClient,
       smithy,
+      smithyTests,
       smithy4s,
       smithy4sTests,
       exampleSmithyShared,
