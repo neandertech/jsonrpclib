@@ -4,6 +4,7 @@ import cats.effect.IO
 import fs2.Stream
 import test.TestServer
 import test.TestClient
+import test.WeatherService
 import weaver._
 import smithy4s.kinds.FunctorAlgebra
 import cats.syntax.all._
@@ -13,6 +14,8 @@ import jsonrpclib.fs2._
 import test.GreetOutput
 import io.circe.Encoder
 import test.GreetInput
+import test.GetWeatherOutput
+import test.GetWeatherInput
 import test.NotWelcomeError
 import io.circe.Decoder
 import smithy4s.Service
@@ -176,6 +179,38 @@ object TestServerSpec extends SimpleIOSuite {
         expect.same(t.message, "ServerInternalError: some other error") &&
         expect.same(t.data, none)
       }
+    }
+  }
+
+  testRes("accessing endpoints from multiple servers") {
+    class WeatherServiceImpl() extends WeatherService[IO] {
+      override def getWeather(city: String): IO[GetWeatherOutput] = IO(GetWeatherOutput("sunny"))
+    }
+
+    for {
+      clientSideChannel <- setupAux(
+        None,
+        channel => {
+          val testClient = ClientStub(TestClient, channel)
+          Seq(AlgebraWrapper(new ServerImpl(testClient)), AlgebraWrapper(new WeatherServiceImpl()))
+        },
+        _ => Seq.empty
+      )
+      greetResult <- {
+        implicit val inputEncoder: Encoder[GreetInput] = CirceJsonCodec.fromSchema
+        implicit val outputDecoder: Decoder[GreetOutput] = CirceJsonCodec.fromSchema
+        val remoteFunction = clientSideChannel.simpleStub[GreetInput, GreetOutput]("greet")
+        remoteFunction(GreetInput("Bob")).toStream
+      }
+      getWeatherResult <- {
+        implicit val inputEncoder: Encoder[GetWeatherInput] = CirceJsonCodec.fromSchema
+        implicit val outputDecoder: Decoder[GetWeatherOutput] = CirceJsonCodec.fromSchema
+        val remoteFunction = clientSideChannel.simpleStub[GetWeatherInput, GetWeatherOutput]("getWeather")
+        remoteFunction(GetWeatherInput("Warsaw")).toStream
+      }
+    } yield {
+      expect.same(greetResult.message, "Hello Bob") &&
+      expect.same(getWeatherResult.weather, "sunny")
     }
   }
 }

@@ -50,3 +50,20 @@ operation Pong {
         pong: String
     }
 }
+
+@jsonRPC
+service WeatherService {
+    operations: [GetWeather]
+}
+
+@jsonRequest("getWeather")
+operation GetWeather {
+    input := {
+        @required
+        city: String
+    }
+    output := {
+        @required
+        weather: String
+    }
+}
