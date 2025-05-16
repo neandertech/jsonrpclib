@@ -132,6 +132,34 @@ object TestServerSpec extends SimpleIOSuite {
     }
   }
 
+  testRes("internal error when processing notification should not break the server") {
+    implicit val greetInputEncoder: Encoder[PingInput] = CirceJsonCodec.fromSchema
+
+    for {
+      ref <- SignallingRef[IO, Option[String]](none).toStream
+      clientSideChannel <- setup(
+        channel => {
+          val testClient = ClientStub(TestClient, channel)
+          AlgebraWrapper(new TestServer[IO] {
+            override def greet(name: String): IO[GreetOutput] = ???
+
+            override def ping(ping: String): IO[Unit] = {
+              if (ping == "fail") IO.raiseError(new RuntimeException("throwing internal error on demand"))
+              else testClient.pong("pong")
+            }
+          })
+        },
+        _ => AlgebraWrapper(new Client(ref))
+      )
+      remoteFunction = clientSideChannel.notificationStub[PingInput]("ping")
+      _ <- remoteFunction(PingInput("fail")).toStream
+      _ <- remoteFunction(PingInput("ping")).toStream
+      result <- ref.discrete.dropWhile(_.isEmpty).take(1)
+    } yield {
+      expect.same(result, "pong".some)
+    }
+  }
+
   testRes("server returns known error") {
     implicit val greetInputEncoder: Encoder[GreetInput] = CirceJsonCodec.fromSchema
     implicit val greetOutputDecoder: Decoder[GreetOutput] = CirceJsonCodec.fromSchema
