@@ -112,6 +112,7 @@ val smithyTests = projectMatrix
       "com.disneystreaming" %%% "weaver-cats" % "0.8.4" % Test
     )
   )
+  .disablePlugins(MimaPlugin)
 
 lazy val buildTimeProtocolDependency =
   /** By default, smithy4sInternalDependenciesAsJars doesn't contain the jars in the "smithy4s" configuration. We have
