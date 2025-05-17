@@ -92,7 +92,7 @@ object TestServerSpec extends SimpleIOSuite {
         .concurrently(clientChannelWithEndpoints.output.through(serverChannelWithEndpoints.input))
         .concurrently(serverChannelWithEndpoints.output.through(clientChannelWithEndpoints.input))
     } yield {
-      clientSideChannel
+      clientChannelWithEndpoints
     }
   }
 

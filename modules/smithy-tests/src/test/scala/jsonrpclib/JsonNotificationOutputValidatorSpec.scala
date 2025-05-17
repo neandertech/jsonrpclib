@@ -32,12 +32,11 @@ object JsonNotificationOutputValidatorSpec extends FunSuite {
           |
           |@jsonNotification("notify")
           |operation NotifySomething {
-          |  output: NotifyOutput
+          |  output:={
+          |    message: String
+          |  }
           |}
           |
-          |structure NotifyOutput {
-          |  message: String
-          |}
           |""".stripMargin
       )
     )
@@ -48,7 +47,7 @@ object JsonNotificationOutputValidatorSpec extends FunSuite {
       .shapeId(ShapeId.fromParts("test", "NotifySomething"))
       .severity(Severity.ERROR)
       .message(
-        "Operation `test#NotifySomething` marked as @jsonNotification must not have output defined, but found `test#NotifyOutput`."
+        "Operation marked as @jsonNotification must not return anything, but found `test#NotifySomethingOutput`."
       )
       .build()
 

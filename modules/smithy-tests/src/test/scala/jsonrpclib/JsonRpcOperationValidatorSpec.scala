@@ -63,7 +63,7 @@ object JsonRpcOperationValidatorSpec extends FunSuite {
         .shapeId(ShapeId.fromParts("test", "BadOp"))
         .severity(Severity.ERROR)
         .message(
-          "Operation `test#BadOp` is part of service `test#MyService` marked with @jsonRPC but is missing @jsonRequest or @jsonNotification."
+          "Operation is part of service `test#MyService` marked with @jsonRPC but is missing @jsonRequest or @jsonNotification."
         )
         .build()
 

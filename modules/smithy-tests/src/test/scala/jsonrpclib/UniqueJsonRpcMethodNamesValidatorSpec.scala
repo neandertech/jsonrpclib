@@ -52,7 +52,7 @@ object UniqueJsonRpcMethodNamesValidatorSpec extends FunSuite {
           |operation OpA {}
           |
           |@jsonNotification("foo")
-          |operation OpB {} // ❌ duplicate method name "foo"
+          |operation OpB {} // duplicate method name "foo"
           |""".stripMargin
       )
     )
@@ -68,6 +68,56 @@ object UniqueJsonRpcMethodNamesValidatorSpec extends FunSuite {
       .build()
 
     assert(events.contains(expected))
+  }
+
+  test("no error if two services use the same operation") {
+    assembleModel(
+      """$version: "2"
+          |namespace test
+          |
+          |use jsonrpclib#jsonRPC
+          |use jsonrpclib#jsonRequest
+          |use jsonrpclib#jsonNotification
+          |
+          |@jsonRPC
+          |service MyService {
+          |  operations: [OpA]
+          |}
+          |
+          |@jsonRPC
+          |service MyOtherService {
+          |  operations: [OpA]
+          |}
+          |
+          |@jsonRequest("foo")
+          |operation OpA {}
+          |
+          |""".stripMargin
+    ).unwrap()
+    success
+  }
+
+  test("no error if two services use the same operation") {
+    assembleModel(
+      """$version: "2"
+        |namespace test
+        |
+        |use jsonrpclib#jsonRequest
+        |use jsonrpclib#jsonNotification
+        |
+        |
+        |service NonJsonRpcService {
+        |  operations: [OpA]
+        |}
+        |
+        |@jsonRequest("foo")
+        |operation OpA {}
+        |
+        |@jsonNotification("foo")
+        |operation OpB {} // duplicate method name "foo"
+        |""".stripMargin
+    ).unwrap()
+    success
   }
 
 }

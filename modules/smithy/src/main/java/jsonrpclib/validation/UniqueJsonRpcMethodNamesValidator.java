@@ -1,6 +1,7 @@
 package jsonrpclib.validation;
 
 import jsonrpclib.JsonNotificationTrait;
+import jsonrpclib.JsonRPCTrait;
 import jsonrpclib.JsonRequestTrait;
 import software.amazon.smithy.model.Model;
 import software.amazon.smithy.model.shapes.OperationShape;
@@ -19,8 +20,8 @@ public class UniqueJsonRpcMethodNamesValidator extends AbstractValidator {
 
     @Override
     public List<ValidationEvent> validate(Model model) {
-        return model.getServiceShapes().stream()
-            .flatMap(service -> validateService(service, model))
+        return model.getShapesWithTrait(JsonRPCTrait.class).stream()
+            .flatMap(service -> validateService(service.asServiceShape().orElseThrow(), model))
             .collect(Collectors.toList());
     }
 

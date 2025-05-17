@@ -4,7 +4,6 @@ import jsonrpclib.JsonNotificationTrait;
 import jsonrpclib.JsonRPCTrait;
 import jsonrpclib.JsonRequestTrait;
 import software.amazon.smithy.model.Model;
-import software.amazon.smithy.model.shapes.OperationShape;
 import software.amazon.smithy.model.shapes.ServiceShape;
 import software.amazon.smithy.model.shapes.Shape;
 import software.amazon.smithy.model.validation.AbstractValidator;
@@ -27,15 +26,12 @@ public class JsonRpcOperationValidator extends AbstractValidator {
     private Stream<ValidationEvent> validateService(Model model, ServiceShape service) {
         return service.getAllOperations().stream()
             .map(model::expectShape)
-            .filter(Shape::isOperationShape)
-            .map(shape -> shape.asOperationShape().orElseThrow())
             .filter(op -> !hasJsonRpcMethod(op))
             .map(op -> error(op, String.format(
-                "Operation `%s` is part of service `%s` marked with @jsonRPC but is missing @jsonRequest or @jsonNotification.",
-                op.getId(), service.getId())));
+                "Operation is part of service `%s` marked with @jsonRPC but is missing @jsonRequest or @jsonNotification.", service.getId())));
     }
 
-    private boolean hasJsonRpcMethod(OperationShape op) {
+    private boolean hasJsonRpcMethod(Shape op) {
         return op.hasTrait(JsonRequestTrait.ID) || op.hasTrait(JsonNotificationTrait.ID);
     }
 }
