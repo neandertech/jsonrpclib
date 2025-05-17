@@ -24,10 +24,10 @@ structure jsonRPC {
 
 /// Identifies an operation that abides by request/response semantics
 /// https://www.jsonrpc.org/specification#request_object
-@trait(selector: "operation")
+@trait(selector: "operation", conflicts: [jsonNotification])
 string jsonRequest
 
 /// Identifies an operation that abides by fire-and-forget semantics
 /// see https://www.jsonrpc.org/specification#notification
-@trait(selector: "operation")
+@trait(selector: "operation", conflicts: [jsonRequest])
 string jsonNotification
