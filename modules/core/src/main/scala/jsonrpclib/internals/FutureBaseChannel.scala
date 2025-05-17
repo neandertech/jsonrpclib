@@ -1,5 +1,6 @@
 package jsonrpclib
 
+import io.circe.Encoder
 import jsonrpclib.internals._
 
 import java.util.concurrent.atomic.AtomicLong
@@ -25,7 +26,7 @@ abstract class FutureBasedChannel(endpoints: List[Endpoint[Future]])(implicit ec
   protected def getEndpoint(method: String): Future[Option[Endpoint[Future]]] =
     Future.successful(endpointsMap.get(method))
   protected def sendMessage(message: Message): Future[Unit] = {
-    sendPayload(Codec.encode(message)).map(_ => ())
+    sendPayload(Payload(Encoder[Message].apply(message))).map(_ => ())
   }
   protected def nextCallId(): Future[CallId] = Future.successful(CallId.NumberId(nextID.incrementAndGet()))
 

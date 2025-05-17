@@ -1,5 +1,7 @@
 package jsonrpclib
 
+import io.circe.Codec
+
 sealed trait StubTemplate[In, Err, Out]
 object StubTemplate {
   def notification[In](method: String)(implicit inCodec: Codec[In]): StubTemplate[In, Nothing, Unit] =

@@ -2,9 +2,9 @@ package jsonrpclib.fs2
 
 import cats.effect.IO
 import cats.syntax.all._
-import com.github.plokhotnyuk.jsoniter_scala.core.JsonValueCodec
-import com.github.plokhotnyuk.jsoniter_scala.macros.JsonCodecMaker
 import fs2.Stream
+import io.circe.generic.semiauto._
+import io.circe.Codec
 import jsonrpclib._
 import weaver._
 
@@ -14,12 +14,12 @@ object FS2ChannelSpec extends SimpleIOSuite {
 
   case class IntWrapper(int: Int)
   object IntWrapper {
-    implicit val jcodec: JsonValueCodec[IntWrapper] = JsonCodecMaker.make
+    implicit val codec: Codec[IntWrapper] = deriveCodec
   }
 
   case class CancelRequest(callId: CallId)
   object CancelRequest {
-    implicit val jcodec: JsonValueCodec[CancelRequest] = JsonCodecMaker.make
+    implicit val codec: Codec[CancelRequest] = deriveCodec
   }
 
   def testRes(name: TestName)(run: Stream[IO, Expectations]): Unit =
@@ -30,8 +30,8 @@ object FS2ChannelSpec extends SimpleIOSuite {
   def setup(cancelTemplate: CancelTemplate, endpoints: Endpoint[IO]*) = setupAux(endpoints, Some(cancelTemplate))
   def setupAux(endpoints: Seq[Endpoint[IO]], cancelTemplate: Option[CancelTemplate]): Stream[IO, ClientSideChannel] = {
     for {
-      serverSideChannel <- FS2Channel[IO](cancelTemplate = cancelTemplate)
-      clientSideChannel <- FS2Channel[IO](cancelTemplate = cancelTemplate)
+      serverSideChannel <- FS2Channel.stream[IO](cancelTemplate = cancelTemplate)
+      clientSideChannel <- FS2Channel.stream[IO](cancelTemplate = cancelTemplate)
       _ <- serverSideChannel.withEndpointsStream(endpoints)
       _ <- Stream(())
         .concurrently(clientSideChannel.output.through(serverSideChannel.input))

@@ -1,11 +1,12 @@
 package jsonrpclib.internals
 
-import weaver._
-import java.io.ByteArrayInputStream
-import java.io.BufferedReader
-import java.io.InputStreamReader
 import jsonrpclib.ProtocolError
+import weaver._
+
+import java.io.BufferedReader
+import java.io.ByteArrayInputStream
 import java.io.IOException
+import java.io.InputStreamReader
 import java.io.UncheckedIOException
 
 object HeaderSpec extends FunSuite {
