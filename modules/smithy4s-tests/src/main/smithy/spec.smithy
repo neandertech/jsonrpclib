@@ -5,6 +5,7 @@ namespace test
 use jsonrpclib#jsonNotification
 use jsonrpclib#jsonRPC
 use jsonrpclib#jsonRequest
+use jsonrpclib#jsonPayload
 
 @jsonRPC
 service TestServer {
@@ -27,6 +28,36 @@ operation Greet {
         message: String
     }
     errors: [NotWelcomeError]
+}
+
+
+@jsonRPC
+service TestServerWithPayload {
+    operations: [GreetWithPayload]
+}
+
+@jsonRequest("greetWithPayload")
+operation GreetWithPayload {
+    input := {
+        @required
+        @jsonPayload
+        payload: GreetInputPayload
+    }
+    output := {
+        @required
+        @jsonPayload
+        payload: GreetOutputPayload
+    }
+}
+
+structure GreetInputPayload {
+    @required
+    name: String
+}
+
+structure GreetOutputPayload {
+    @required
+    message: String
 }
 
 @error("client")

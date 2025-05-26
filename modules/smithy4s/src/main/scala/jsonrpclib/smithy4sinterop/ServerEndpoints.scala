@@ -32,8 +32,9 @@ object ServerEndpoints {
   def apply[Alg[_[_, _, _, _, _]], F[_]](
       impl: FunctorAlgebra[Alg, F]
   )(implicit service: Service[Alg], F: Monadic[F]): List[Endpoint[F]] = {
-    val interpreter: service.FunctorInterpreter[F] = service.toPolyFunction(impl)
-    service.endpoints.toList.flatMap { smithy4sEndpoint =>
+    val transformedService = JsonRpcTransformations.apply(service)
+    val interpreter: transformedService.FunctorInterpreter[F] = transformedService.toPolyFunction(impl)
+    transformedService.endpoints.toList.flatMap { smithy4sEndpoint =>
       EndpointSpec
         .fromHints(smithy4sEndpoint.hints)
         .map { endpointSpec =>
