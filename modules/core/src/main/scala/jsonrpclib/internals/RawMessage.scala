@@ -84,9 +84,10 @@ private[jsonrpclib] object RawMessage {
       error <- c.downField("error").as[Option[ErrorPayload]]
       id <- c.downField("id").as[Option[CallId]]
       resultOpt <-
-        if (c.downField("result").succeeded)
-          c.downField("result").as[Option[Payload]].map(res => Some(res))
-        else Right(None)
+        c.downField("result")
+          .success
+          .map(_.as[Option[Payload]].map(Some(_)))
+          .getOrElse(Right(None))
     } yield RawMessage(jsonrpc, method, resultOpt, error, params, id)
   }
 }

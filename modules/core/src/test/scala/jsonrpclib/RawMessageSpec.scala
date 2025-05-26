@@ -57,6 +57,15 @@ object RawMessageSpec extends FunSuite {
     assert(result == expected, s"Expected: $expected, got: $result")
   }
 
+  test("response message serialization with nested results") {
+    val input: Message =
+      OutputMessage.ResponseMessage(CallId.NumberId(1), Payload(Json.obj("result" -> Json.fromInt(1))))
+    val expected = """{"jsonrpc":"2.0","id":1,"result":{"result":1}}"""
+    val result = writeToString(input.asJson)
+
+    assert(result == expected, s"Expected: $expected, got: $result")
+  }
+
   test("error message serialization") {
     val input: Message = OutputMessage.ErrorMessage(
       CallId.NumberId(1),
