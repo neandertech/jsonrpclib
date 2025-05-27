@@ -1,3 +1,4 @@
 jsonrpclib.validation.JsonNotificationOutputValidator
 jsonrpclib.validation.UniqueJsonRpcMethodNamesValidator
 jsonrpclib.validation.JsonRpcOperationValidator
+jsonrpclib.validation.JsonPayloadValidator

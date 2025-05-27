@@ -36,5 +36,5 @@ string jsonNotification
 
 /// Binds a single structure member to the payload of a jsonrpc message.
 /// Just like @httpPayload, but for jsonRPC.
-@trait(selector: "operation -[input, output]-> structure > member", structurallyExclusive: "member")
+@trait(selector: "structure > member", structurallyExclusive: "member")
 structure jsonPayload {}
