@@ -1,6 +1,7 @@
 package jsonrpclib.smithy4sinterop
 
 import smithy4s.~>
+import smithy4s.schema.ErrorSchema
 import smithy4s.schema.OperationSchema
 import smithy4s.Endpoint
 import smithy4s.Schema
@@ -13,12 +14,20 @@ private[jsonrpclib] object JsonRpcTransformations {
       .mapEndpointEach(
         Endpoint.mapSchema(
           OperationSchema
-            .mapInputK(payloadTransformation)
-            .andThen(OperationSchema.mapOutputK(payloadTransformation))
+            .mapInputK(JsonPayloadTransformation)
+            .andThen(OperationSchema.mapOutputK(JsonPayloadTransformation))
+            .andThen(OperationSchema.mapErrorK(errorTransformation))
         )
       )
       .build
 
   private val payloadTransformation: Schema ~> Schema = Schema
     .transformTransitivelyK(JsonPayloadTransformation)
+
+  private val errorTransformation: ErrorSchema ~> ErrorSchema =
+    new smithy4s.kinds.PolyFunction[ErrorSchema, ErrorSchema] {
+      def apply[A](e: ErrorSchema[A]): ErrorSchema[A] = {
+        payloadTransformation(e.schema).error(e.unliftError)(e.liftError.unlift)
+      }
+    }
 }
