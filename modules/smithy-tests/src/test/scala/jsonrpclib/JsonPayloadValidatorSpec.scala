@@ -79,17 +79,17 @@ object JsonPayloadValidatorSpec extends FunSuite {
         |  @jsonPayload
         |  data: String  
         |}
-          |""".stripMargin
+        |""".stripMargin
       )
     )
 
     val expected = ValidationEvent
       .builder()
-      .id("JsonPayload")
+      .id("jsonPayload.OnlyTopLevel")
       .shapeId(ShapeId.fromParts("test", "NestedStructure", "data"))
       .severity(Severity.ERROR)
       .message(
-        "`@jsonPayload` can only be used on top-level members of operation input/output/error structures."
+        "Found an incompatible shape when validating the constraints of the `jsonrpclib#jsonPayload` trait attached to `test#NestedStructure$data`: jsonPayload can only be used on the top level of an operation input/output/error."
       )
       .build()
 
