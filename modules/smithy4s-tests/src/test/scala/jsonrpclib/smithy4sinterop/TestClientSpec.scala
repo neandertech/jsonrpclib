@@ -65,9 +65,6 @@ object TestClientSpec extends SimpleIOSuite {
   }
 
   testRes("Round trip with jsonPayload") {
-
-    // implicit val greetInputEncoder: Encoder[GreetInputPayload] = CirceJsonCodec.fromSchema
-    // implicit val greetOutputDecoder: Decoder[GreetOutputPayload] = CirceJsonCodec.fromSchema
     implicit val greetInputDecoder: Decoder[GreetInput] = CirceJsonCodec.fromSchema
     implicit val greetOutputEncoder: Encoder[GreetOutput] = CirceJsonCodec.fromSchema
     val endpoint: Endpoint[IO] =
