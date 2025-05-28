@@ -24,7 +24,7 @@ object ClientStub {
     * Supports both standard request-response and fire-and-forget notification endpoints.
     */
   def apply[Alg[_[_, _, _, _, _]], F[_]: Monadic](service: Service[Alg], channel: Channel[F]): service.Impl[F] =
-    new ClientStub(service, channel).compile
+    new ClientStub(JsonRpcTransformations.apply(service), channel).compile
 }
 
 private class ClientStub[Alg[_[_, _, _, _, _]], F[_]: Monadic](val service: Service[Alg], channel: Channel[F]) {

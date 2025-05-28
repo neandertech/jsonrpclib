@@ -12,17 +12,8 @@ import jsonrpclib.Monadic
 import jsonrpclib.Payload
 import smithy4s.kinds.FunctorAlgebra
 import smithy4s.Service
-import test.GetWeatherInput
-import test.GetWeatherOutput
-import test.GreetInput
-import test.GreetOutput
-import test.NotWelcomeError
-import test.PingInput
-import test.TestClient
-import test.TestServer
-import test.TestServerOperation
-import test.TestServerOperation.GreetError
-import test.WeatherService
+import test._
+import test.TestServerOperation._
 import weaver._
 
 import scala.concurrent.duration._
@@ -239,6 +230,24 @@ object TestServerSpec extends SimpleIOSuite {
     } yield {
       expect.same(greetResult.message, "Hello Bob") &&
       expect.same(getWeatherResult.weather, "sunny")
+    }
+  }
+
+  testRes("Round trip with jsonPayload") {
+    implicit val greetInputEncoder: Encoder[GreetInput] = CirceJsonCodec.fromSchema
+    implicit val greetOutputDecoder: Decoder[GreetOutput] = CirceJsonCodec.fromSchema
+
+    object ServerImpl extends TestServerWithPayload[IO] {
+      def greetWithPayload(payload: GreetInputPayload): IO[GreetWithPayloadOutput] =
+        IO.pure(GreetWithPayloadOutput(GreetOutputPayload(s"Hello ${payload.name}")))
+    }
+
+    for {
+      clientSideChannel <- setup(_ => AlgebraWrapper(ServerImpl))
+      remoteFunction = clientSideChannel.simpleStub[GreetInput, GreetOutput]("greetWithPayload")
+      result <- remoteFunction(GreetInput("Bob")).toStream
+    } yield {
+      expect.same(result.message, "Hello Bob")
     }
   }
 }

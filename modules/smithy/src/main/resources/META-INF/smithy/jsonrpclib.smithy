@@ -7,6 +7,7 @@ namespace jsonrpclib
 @protocolDefinition(traits: [
     jsonRequest
     jsonNotification
+    jsonPayload
     smithy.api#jsonName
     smithy.api#length
     smithy.api#pattern
@@ -31,3 +32,16 @@ string jsonRequest
 /// see https://www.jsonrpc.org/specification#notification
 @trait(selector: "operation", conflicts: [jsonRequest])
 string jsonNotification
+
+
+/// Binds a single structure member to the payload of a jsonrpc message.
+/// Just like @httpPayload, but for jsonRPC.
+@trait(selector: "structure > member", structurallyExclusive: "member")
+@traitValidators({
+    "jsonPayload.OnlyTopLevel": { 
+        message: "jsonPayload can only be used on the top level of an operation input/output/error.", 
+        severity: "ERROR", 
+        selector: "$allowedShapes(:root(operation -[input, output, error]-> structure > member)) :not(:in(${allowedShapes}))"
+    }
+})
+structure jsonPayload {}

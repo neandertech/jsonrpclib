@@ -7,10 +7,7 @@ import io.circe.Decoder
 import io.circe.Encoder
 import jsonrpclib._
 import jsonrpclib.fs2._
-import test.GreetInput
-import test.GreetOutput
-import test.PingInput
-import test.TestServer
+import test._
 import weaver._
 
 import scala.concurrent.duration._
@@ -64,6 +61,21 @@ object TestClientSpec extends SimpleIOSuite {
       result <- ref.discrete.dropWhile(_.isEmpty).take(1)
     } yield {
       expect.same(result, Some(PingInput("hello")))
+    }
+  }
+
+  testRes("Round trip with jsonPayload") {
+    implicit val greetInputDecoder: Decoder[GreetInput] = CirceJsonCodec.fromSchema
+    implicit val greetOutputEncoder: Encoder[GreetOutput] = CirceJsonCodec.fromSchema
+    val endpoint: Endpoint[IO] =
+      Endpoint[IO]("greetWithPayload").simple[GreetInput, GreetOutput](in => IO(GreetOutput(s"Hello ${in.name}")))
+
+    for {
+      clientSideChannel <- setup(endpoint)
+      clientStub = ClientStub(TestServerWithPayload, clientSideChannel)
+      result <- clientStub.greetWithPayload(GreetInputPayload("Bob")).toStream
+    } yield {
+      expect.same(result.payload.message, "Hello Bob")
     }
   }
 }
