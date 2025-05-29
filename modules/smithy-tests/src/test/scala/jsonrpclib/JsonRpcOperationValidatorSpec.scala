@@ -8,24 +8,24 @@ import software.amazon.smithy.model.validation.ValidationEvent
 import weaver._
 
 object JsonRpcOperationValidatorSpec extends FunSuite {
-  test("no error when all operations in @jsonRPC service are properly annotated") {
+  test("no error when all operations in @jsonRpc service are properly annotated") {
     assembleModel(
       """$version: "2"
         |namespace test
         |
-        |use jsonrpclib#jsonRPC
-        |use jsonrpclib#jsonRequest
-        |use jsonrpclib#jsonNotification
+        |use jsonrpclib#jsonRpc
+        |use jsonrpclib#jsonRpcRequest
+        |use jsonrpclib#jsonRpcNotification
         |
-        |@jsonRPC
+        |@jsonRpc
         |service MyService {
         |  operations: [OpA, OpB]
         |}
         |
-        |@jsonRequest("methodA")
+        |@jsonRpcRequest("methodA")
         |operation OpA {}
         |
-        |@jsonNotification("methodB")
+        |@jsonRpcNotification("methodB")
         |operation OpB {
         |  output: unit
         |}
@@ -34,24 +34,24 @@ object JsonRpcOperationValidatorSpec extends FunSuite {
     success
   }
 
-  test("return an error when a @jsonRPC service has an operation without @jsonRequest or @jsonNotification") {
+  test("return an error when a @jsonRpc service has an operation without @jsonRpcRequest or @jsonRpcNotification") {
     val events = eventsWithoutLocations(
       assembleModel(
         """$version: "2"
           |namespace test
           |
-          |use jsonrpclib#jsonRPC
-          |use jsonrpclib#jsonRequest
+          |use jsonrpclib#jsonRpc
+          |use jsonrpclib#jsonRpcRequest
           |
-          |@jsonRPC
+          |@jsonRpc
           |service MyService {
           |  operations: [GoodOp, BadOp]
           |}
           |
-          |@jsonRequest("good")
+          |@jsonRpcRequest("good")
           |operation GoodOp {}
           |
-          |operation BadOp {} // ❌ missing jsonRequest or jsonNotification
+          |operation BadOp {} // ❌ missing jsonRpcRequest or jsonRpcNotification
           |""".stripMargin
       )
     )
@@ -63,7 +63,7 @@ object JsonRpcOperationValidatorSpec extends FunSuite {
         .shapeId(ShapeId.fromParts("test", "BadOp"))
         .severity(Severity.ERROR)
         .message(
-          "Operation is part of service `test#MyService` marked with @jsonRPC but is missing @jsonRequest or @jsonNotification."
+          "Operation is part of service `test#MyService` marked with @jsonRpc but is missing @jsonRpcRequest or @jsonRpcNotification."
         )
         .build()
 

@@ -13,9 +13,9 @@ object JsonNotificationOutputValidatorSpec extends FunSuite {
       """$version: "2"
         |namespace test
         |
-        |use jsonrpclib#jsonNotification
+        |use jsonrpclib#jsonRpcNotification
         |
-        |@jsonNotification("notify")
+        |@jsonRpcNotification("notify")
         |operation NotifySomething {
         |}
         |""".stripMargin
@@ -28,9 +28,9 @@ object JsonNotificationOutputValidatorSpec extends FunSuite {
         """$version: "2"
           |namespace test
           |
-          |use jsonrpclib#jsonNotification
+          |use jsonrpclib#jsonRpcNotification
           |
-          |@jsonNotification("notify")
+          |@jsonRpcNotification("notify")
           |operation NotifySomething {
           |  output:={
           |    message: String
@@ -47,7 +47,7 @@ object JsonNotificationOutputValidatorSpec extends FunSuite {
       .shapeId(ShapeId.fromParts("test", "NotifySomething"))
       .severity(Severity.ERROR)
       .message(
-        "Operation marked as @jsonNotification must not return anything, but found `test#NotifySomethingOutput`."
+        "Operation marked as @jsonRpcNotification must not return anything, but found `test#NotifySomethingOutput`."
       )
       .build()
 

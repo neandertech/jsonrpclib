@@ -28,7 +28,7 @@ public class JsonRpcOperationValidator extends AbstractValidator {
             .map(model::expectShape)
             .filter(op -> !hasJsonRpcMethod(op))
             .map(op -> error(op, String.format(
-                "Operation is part of service `%s` marked with @jsonRPC but is missing @jsonRequest or @jsonNotification.", service.getId())));
+                "Operation is part of service `%s` marked with @jsonRpc but is missing @jsonRpcRequest or @jsonRpcNotification.", service.getId())));
     }
 
     private boolean hasJsonRpcMethod(Shape op) {

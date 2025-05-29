@@ -14,19 +14,19 @@ object UniqueJsonRpcMethodNamesValidatorSpec extends FunSuite {
       """$version: "2"
         |namespace test
         |
-        |use jsonrpclib#jsonRPC
-        |use jsonrpclib#jsonRequest
-        |use jsonrpclib#jsonNotification
+        |use jsonrpclib#jsonRpc
+        |use jsonrpclib#jsonRpcRequest
+        |use jsonrpclib#jsonRpcNotification
         |
-        |@jsonRPC
+        |@jsonRpc
         |service MyService {
         |  operations: [OpA, OpB]
         |}
         |
-        |@jsonRequest("foo")
+        |@jsonRpcRequest("foo")
         |operation OpA {}
         |
-        |@jsonNotification("bar")
+        |@jsonRpcNotification("bar")
         |operation OpB {}
         |""".stripMargin
     ).unwrap()
@@ -39,19 +39,19 @@ object UniqueJsonRpcMethodNamesValidatorSpec extends FunSuite {
         """$version: "2"
           |namespace test
           |
-          |use jsonrpclib#jsonRPC
-          |use jsonrpclib#jsonRequest
-          |use jsonrpclib#jsonNotification
+          |use jsonrpclib#jsonRpc
+          |use jsonrpclib#jsonRpcRequest
+          |use jsonrpclib#jsonRpcNotification
           |
-          |@jsonRPC
+          |@jsonRpc
           |service MyService {
           |  operations: [OpA, OpB]
           |}
           |
-          |@jsonRequest("foo")
+          |@jsonRpcRequest("foo")
           |operation OpA {}
           |
-          |@jsonNotification("foo")
+          |@jsonRpcNotification("foo")
           |operation OpB {} // duplicate method name "foo"
           |""".stripMargin
       )
@@ -75,21 +75,21 @@ object UniqueJsonRpcMethodNamesValidatorSpec extends FunSuite {
       """$version: "2"
           |namespace test
           |
-          |use jsonrpclib#jsonRPC
-          |use jsonrpclib#jsonRequest
-          |use jsonrpclib#jsonNotification
+          |use jsonrpclib#jsonRpc
+          |use jsonrpclib#jsonRpcRequest
+          |use jsonrpclib#jsonRpcNotification
           |
-          |@jsonRPC
+          |@jsonRpc
           |service MyService {
           |  operations: [OpA]
           |}
           |
-          |@jsonRPC
+          |@jsonRpc
           |service MyOtherService {
           |  operations: [OpA]
           |}
           |
-          |@jsonRequest("foo")
+          |@jsonRpcRequest("foo")
           |operation OpA {}
           |
           |""".stripMargin
@@ -102,18 +102,18 @@ object UniqueJsonRpcMethodNamesValidatorSpec extends FunSuite {
       """$version: "2"
         |namespace test
         |
-        |use jsonrpclib#jsonRequest
-        |use jsonrpclib#jsonNotification
+        |use jsonrpclib#jsonRpcRequest
+        |use jsonrpclib#jsonRpcNotification
         |
         |
         |service NonJsonRpcService {
         |  operations: [OpA]
         |}
         |
-        |@jsonRequest("foo")
+        |@jsonRpcRequest("foo")
         |operation OpA {}
         |
-        |@jsonNotification("foo")
+        |@jsonRpcNotification("foo")
         |operation OpB {} // duplicate method name "foo"
         |""".stripMargin
     ).unwrap()

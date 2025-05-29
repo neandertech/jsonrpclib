@@ -23,7 +23,7 @@ public class JsonNotificationOutputValidator extends AbstractValidator {
             var outputShape = model.expectShape(outputShapeId);
             if (outputShape.asStructureShape().map(s -> !s.members().isEmpty()).orElse(true)) {
                 return Stream.of(error(op, String.format(
-                    "Operation marked as @jsonNotification must not return anything, but found `%s`.", outputShapeId)));
+                    "Operation marked as @jsonRpcNotification must not return anything, but found `%s`.", outputShapeId)));
             } else {
                 return Stream.empty();
             }

@@ -8,22 +8,22 @@ import software.amazon.smithy.model.validation.ValidationEvent
 import weaver._
 
 object JsonPayloadValidatorSpec extends FunSuite {
-  test("no error when jsonPayload is used on the input, output or error structure's member") {
+  test("no error when jsonRpcPayload is used on the input, output or error structure's member") {
 
     assembleModel(
       """$version: "2"
         |namespace test
         |
-        |use jsonrpclib#jsonRPC
-        |use jsonrpclib#jsonRequest
-        |use jsonrpclib#jsonPayload
+        |use jsonrpclib#jsonRpc
+        |use jsonrpclib#jsonRpcRequest
+        |use jsonrpclib#jsonRpcPayload
         |
-        |@jsonRPC
+        |@jsonRpc
         |service MyService {
         |  operations: [OpA]
         |}
         |
-        |@jsonRequest("foo")
+        |@jsonRpcRequest("foo")
         |operation OpA {
         |  input: OpInput
         |  output: OpOutput
@@ -31,18 +31,18 @@ object JsonPayloadValidatorSpec extends FunSuite {
         |}
         |
         |structure OpInput {
-        |  @jsonPayload
+        |  @jsonRpcPayload
         |  data: String  
         |}
         |
         |structure OpOutput {
-        |  @jsonPayload
+        |  @jsonRpcPayload
         |  data: String  
         |}
         |
         |@error("client")
         |structure OpError {
-        |  @jsonPayload
+        |  @jsonRpcPayload
         |  data: String  
         |}
         |
@@ -51,22 +51,22 @@ object JsonPayloadValidatorSpec extends FunSuite {
 
     success
   }
-  test("return an error when jsonPayload is used in a nested structure") {
+  test("return an error when jsonRpcPayload is used in a nested structure") {
     val events = eventsWithoutLocations(
       assembleModel(
         """$version: "2"
         |namespace test
         |
-        |use jsonrpclib#jsonRPC
-        |use jsonrpclib#jsonRequest
-        |use jsonrpclib#jsonPayload
+        |use jsonrpclib#jsonRpc
+        |use jsonrpclib#jsonRpcRequest
+        |use jsonrpclib#jsonRpcPayload
         |
-        |@jsonRPC
+        |@jsonRpc
         |service MyService {
         |  operations: [OpA]
         |}
         |
-        |@jsonRequest("foo")
+        |@jsonRpcRequest("foo")
         |operation OpA {
         |  input: OpInput
         |}
@@ -76,7 +76,7 @@ object JsonPayloadValidatorSpec extends FunSuite {
         |}
         |
         |structure NestedStructure {
-        |  @jsonPayload
+        |  @jsonRpcPayload
         |  data: String  
         |}
         |""".stripMargin
@@ -85,11 +85,11 @@ object JsonPayloadValidatorSpec extends FunSuite {
 
     val expected = ValidationEvent
       .builder()
-      .id("jsonPayload.OnlyTopLevel")
+      .id("jsonRpcPayload.OnlyTopLevel")
       .shapeId(ShapeId.fromParts("test", "NestedStructure", "data"))
       .severity(Severity.ERROR)
       .message(
-        "Found an incompatible shape when validating the constraints of the `jsonrpclib#jsonPayload` trait attached to `test#NestedStructure$data`: jsonPayload can only be used on the top level of an operation input/output/error."
+        "Found an incompatible shape when validating the constraints of the `jsonrpclib#jsonRpcPayload` trait attached to `test#NestedStructure$data`: jsonRpcPayload can only be used on the top level of an operation input/output/error."
       )
       .build()
 
