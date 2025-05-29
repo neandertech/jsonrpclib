@@ -1,6 +1,6 @@
 package jsonrpclib.validation;
 
-import jsonrpclib.JsonNotificationTrait;
+import jsonrpclib.JsonRpcNotificationTrait;
 import software.amazon.smithy.model.Model;
 import software.amazon.smithy.model.shapes.ShapeId;
 import software.amazon.smithy.model.validation.AbstractValidator;
@@ -18,7 +18,7 @@ public class JsonNotificationOutputValidator extends AbstractValidator {
 
     @Override
     public List<ValidationEvent> validate(Model model) {
-        return model.getShapesWithTrait(JsonNotificationTrait.ID).stream().flatMap(op -> {
+        return model.getShapesWithTrait(JsonRpcNotificationTrait.ID).stream().flatMap(op -> {
             ShapeId outputShapeId = op.asOperationShape().orElseThrow().getOutputShape();
             var outputShape = model.expectShape(outputShapeId);
             if (outputShape.asStructureShape().map(s -> !s.members().isEmpty()).orElse(true)) {

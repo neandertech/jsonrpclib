@@ -5,9 +5,9 @@ namespace jsonrpclib
 /// the JSON-RPC protocol,
 /// see https://www.jsonrpc.org/specification
 @protocolDefinition(traits: [
-    jsonRequest
-    jsonNotification
-    jsonPayload
+    jsonRpcRequest
+    jsonRpcNotification
+    jsonRpcPayload
     smithy.api#jsonName
     smithy.api#length
     smithy.api#pattern
@@ -20,28 +20,28 @@ namespace jsonrpclib
     alloy#untagged
 ])
 @trait(selector: "service")
-structure jsonRPC {
+structure jsonRpc {
 }
 
 /// Identifies an operation that abides by request/response semantics
 /// https://www.jsonrpc.org/specification#request_object
-@trait(selector: "operation", conflicts: [jsonNotification])
-string jsonRequest
+@trait(selector: "operation", conflicts: [jsonRpcNotification])
+string jsonRpcRequest
 
 /// Identifies an operation that abides by fire-and-forget semantics
 /// see https://www.jsonrpc.org/specification#notification
-@trait(selector: "operation", conflicts: [jsonRequest])
-string jsonNotification
+@trait(selector: "operation", conflicts: [jsonRpcRequest])
+string jsonRpcNotification
 
 
 /// Binds a single structure member to the payload of a jsonrpc message.
-/// Just like @httpPayload, but for jsonRPC.
+/// Just like @httpPayload, but for jsonRpc.
 @trait(selector: "structure > member", structurallyExclusive: "member")
 @traitValidators({
-    "jsonPayload.OnlyTopLevel": { 
-        message: "jsonPayload can only be used on the top level of an operation input/output/error.", 
+    "jsonRpcPayload.OnlyTopLevel": { 
+        message: "jsonRpcPayload can only be used on the top level of an operation input/output/error.", 
         severity: "ERROR", 
         selector: "$allowedShapes(:root(operation -[input, output, error]-> structure > member)) :not(:in(${allowedShapes}))"
     }
 })
-structure jsonPayload {}
+structure jsonRpcPayload {}

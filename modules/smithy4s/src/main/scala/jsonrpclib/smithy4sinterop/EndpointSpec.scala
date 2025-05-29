@@ -8,8 +8,8 @@ private[smithy4sinterop] object EndpointSpec {
   case class Request(methodName: String) extends EndpointSpec
 
   def fromHints(hints: Hints): Option[EndpointSpec] = hints match {
-    case jsonrpclib.JsonRequest.hint(r)      => Some(Request(r.value))
-    case jsonrpclib.JsonNotification.hint(r) => Some(Notification(r.value))
-    case _                                   => None
+    case jsonrpclib.JsonRpcRequest.hint(r)      => Some(Request(r.value))
+    case jsonrpclib.JsonRpcNotification.hint(r) => Some(Notification(r.value))
+    case _                                      => None
   }
 }

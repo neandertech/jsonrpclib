@@ -1,8 +1,8 @@
 package jsonrpclib.validation;
 
-import jsonrpclib.JsonNotificationTrait;
-import jsonrpclib.JsonRPCTrait;
-import jsonrpclib.JsonRequestTrait;
+import jsonrpclib.JsonRpcNotificationTrait;
+import jsonrpclib.JsonRpcTrait;
+import jsonrpclib.JsonRpcRequestTrait;
 import software.amazon.smithy.model.Model;
 import software.amazon.smithy.model.shapes.ServiceShape;
 import software.amazon.smithy.model.shapes.Shape;
@@ -18,7 +18,7 @@ public class JsonRpcOperationValidator extends AbstractValidator {
     @Override
     public List<ValidationEvent> validate(Model model) {
         return model.getServiceShapes().stream()
-            .filter(service -> service.hasTrait(JsonRPCTrait.class))
+            .filter(service -> service.hasTrait(JsonRpcTrait.class))
             .flatMap(service -> validateService(model, service))
             .collect(Collectors.toList());
     }
@@ -32,7 +32,7 @@ public class JsonRpcOperationValidator extends AbstractValidator {
     }
 
     private boolean hasJsonRpcMethod(Shape op) {
-        return op.hasTrait(JsonRequestTrait.ID) || op.hasTrait(JsonNotificationTrait.ID);
+        return op.hasTrait(JsonRpcRequestTrait.ID) || op.hasTrait(JsonRpcNotificationTrait.ID);
     }
 }
 

@@ -2,21 +2,21 @@ $version: "2.0"
 
 namespace test
 
-use jsonrpclib#jsonRequest
-use jsonrpclib#jsonRPC
-use jsonrpclib#jsonNotification
+use jsonrpclib#jsonRpcRequest
+use jsonrpclib#jsonRpc
+use jsonrpclib#jsonRpcNotification
 
-@jsonRPC
+@jsonRpc
 service TestServer {
   operations: [Greet, Ping]
 }
 
-@jsonRPC
+@jsonRpc
 service TestClient {
   operations: [Pong]
 }
 
-@jsonRequest("greet")
+@jsonRpcRequest("greet")
 operation Greet {
   input := {
     @required
@@ -28,7 +28,7 @@ operation Greet {
   }
 }
 
-@jsonNotification("ping")
+@jsonRpcNotification("ping")
 operation Ping {
   input := {
     @required
@@ -36,7 +36,7 @@ operation Ping {
   }
 }
 
-@jsonNotification("pong")
+@jsonRpcNotification("pong")
 operation Pong {
   input := {
     @required

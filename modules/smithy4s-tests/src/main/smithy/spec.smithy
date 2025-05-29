@@ -2,22 +2,22 @@ $version: "2.0"
 
 namespace test
 
-use jsonrpclib#jsonNotification
-use jsonrpclib#jsonRPC
-use jsonrpclib#jsonRequest
-use jsonrpclib#jsonPayload
+use jsonrpclib#jsonRpcNotification
+use jsonrpclib#jsonRpc
+use jsonrpclib#jsonRpcRequest
+use jsonrpclib#jsonRpcPayload
 
-@jsonRPC
+@jsonRpc
 service TestServer {
     operations: [Greet, Ping]
 }
 
-@jsonRPC
+@jsonRpc
 service TestClient {
     operations: [Pong]
 }
 
-@jsonRequest("greet")
+@jsonRpcRequest("greet")
 operation Greet {
     input := {
         @required
@@ -31,21 +31,21 @@ operation Greet {
 }
 
 
-@jsonRPC
+@jsonRpc
 service TestServerWithPayload {
     operations: [GreetWithPayload]
 }
 
-@jsonRequest("greetWithPayload")
+@jsonRpcRequest("greetWithPayload")
 operation GreetWithPayload {
     input := {
         @required
-        @jsonPayload
+        @jsonRpcPayload
         payload: GreetInputPayload
     }
     output := {
         @required
-        @jsonPayload
+        @jsonRpcPayload
         payload: GreetOutputPayload
     }
 }
@@ -66,7 +66,7 @@ structure NotWelcomeError {
     msg: String
 }
 
-@jsonNotification("ping")
+@jsonRpcNotification("ping")
 operation Ping {
     input := {
         @required
@@ -74,7 +74,7 @@ operation Ping {
     }
 }
 
-@jsonNotification("pong")
+@jsonRpcNotification("pong")
 operation Pong {
     input := {
         @required
@@ -82,12 +82,12 @@ operation Pong {
     }
 }
 
-@jsonRPC
+@jsonRpc
 service WeatherService {
     operations: [GetWeather]
 }
 
-@jsonRequest("getWeather")
+@jsonRpcRequest("getWeather")
 operation GetWeather {
     input := {
         @required
