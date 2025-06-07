@@ -37,7 +37,7 @@ val commonSettings = Seq(
   ),
   scalacOptions ++= {
     CrossVersion.partialVersion(scalaVersion.value) match {
-      case Some((2, _)) => Seq(s"-target:jvm-$jdkVersion")
+      case Some((2, _)) => Seq(s"-release:$jdkVersion")
       case _            => Seq(s"-java-output-version:$jdkVersion")
     }
   },
