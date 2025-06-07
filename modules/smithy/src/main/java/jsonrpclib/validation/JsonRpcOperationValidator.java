@@ -17,8 +17,7 @@ public class JsonRpcOperationValidator extends AbstractValidator {
 
     @Override
     public List<ValidationEvent> validate(Model model) {
-        return model.getServiceShapes().stream()
-            .filter(service -> service.hasTrait(JsonRpcTrait.class))
+        return model.getServiceShapesWithTrait(JsonRpcTrait.class).stream()
             .flatMap(service -> validateService(model, service))
             .collect(Collectors.toList());
     }

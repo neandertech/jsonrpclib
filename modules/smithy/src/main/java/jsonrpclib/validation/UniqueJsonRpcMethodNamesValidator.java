@@ -20,8 +20,8 @@ public class UniqueJsonRpcMethodNamesValidator extends AbstractValidator {
 
     @Override
     public List<ValidationEvent> validate(Model model) {
-        return model.getShapesWithTrait(JsonRpcTrait.class).stream()
-            .flatMap(service -> validateService(service.asServiceShape().orElseThrow(), model))
+        return model.getServiceShapesWithTrait(JsonRpcTrait.class).stream()
+            .flatMap(service -> validateService(service, model))
             .collect(Collectors.toList());
     }
 
