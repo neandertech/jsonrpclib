@@ -4,7 +4,10 @@ import io.circe.Codec
 import jsonrpclib.Channel
 import jsonrpclib.Monadic
 import smithy4s.~>
+import smithy4s.codecs.Decoder
+import smithy4s.codecs.Encoder
 import smithy4s.schema._
+import smithy4s.Document
 import smithy4s.Service
 import smithy4s.ShapeId
 
@@ -46,9 +49,17 @@ private class ClientStub[Alg[_[_, _, _, _, _]], F[_]: Monadic](val service: Serv
       smithy4sEndpoint: service.Endpoint[I, E, O, SI, SO],
       endpointSpec: EndpointSpec
   ): I => F[O] = {
+    val decoderCache = CirceJsonCodec.Decoder.createCache()
+    val encoderCache = CirceJsonCodec.Encoder.createCache()
 
-    implicit val inputCodec: Codec[I] = CirceJsonCodec.fromSchema(smithy4sEndpoint.input)
-    implicit val outputCodec: Codec[O] = CirceJsonCodec.fromSchema(smithy4sEndpoint.output)
+    implicit val inputCodec: Codec[I] = Codec.from(
+      CirceJsonCodec.Decoder.fromSchema(smithy4sEndpoint.input, decoderCache),
+      CirceJsonCodec.Encoder.fromSchema(smithy4sEndpoint.input, encoderCache)
+    )
+    implicit val outputCodec: Codec[O] = Codec.from(
+      CirceJsonCodec.Decoder.fromSchema(smithy4sEndpoint.output, decoderCache),
+      CirceJsonCodec.Encoder.fromSchema(smithy4sEndpoint.output, encoderCache)
+    )
 
     endpointSpec match {
       case EndpointSpec.Notification(methodName) =>

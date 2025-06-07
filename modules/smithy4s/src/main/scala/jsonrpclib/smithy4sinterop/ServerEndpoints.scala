@@ -63,9 +63,17 @@ object ServerEndpoints {
       endpointSpec: EndpointSpec,
       impl: FunctorInterpreter[Op, F]
   ): Endpoint[F] = {
+    val decoderCache = CirceJsonCodec.Decoder.createCache()
+    val encoderCache = CirceJsonCodec.Encoder.createCache()
 
-    implicit val inputCodec: Codec[I] = CirceJsonCodec.fromSchema(smithy4sEndpoint.input)
-    implicit val outputCodec: Codec[O] = CirceJsonCodec.fromSchema(smithy4sEndpoint.output)
+    implicit val inputCodec: Codec[I] = Codec.from(
+      CirceJsonCodec.Decoder.fromSchema(smithy4sEndpoint.input, decoderCache),
+      CirceJsonCodec.Encoder.fromSchema(smithy4sEndpoint.input, encoderCache)
+    )
+    implicit val outputCodec: Codec[O] = Codec.from(
+      CirceJsonCodec.Decoder.fromSchema(smithy4sEndpoint.output, decoderCache),
+      CirceJsonCodec.Encoder.fromSchema(smithy4sEndpoint.output, encoderCache)
+    )
 
     def errorResponse(throwable: Throwable): F[E] = throwable match {
       case smithy4sEndpoint.Error((_, e)) => e.pure
