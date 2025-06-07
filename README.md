@@ -60,6 +60,6 @@ With these modules, you can:
 - Annotate your Smithy operations with `@jsonRpcRequest` or `@jsonRpcNotification`
 - Generate client and server interfaces using smithy4s
 - Use ClientStub to invoke remote services over JSON-RPC
-- Use ServerEndpoints to expose service implementations via FS2Channel
+- Use ServerEndpoints to expose service implementations via a Channel
 
 This allows you to define your API once in Smithy and interact with it as a fully typed JSON-RPC service—without writing manual encoders, decoders, or dispatch logic.
