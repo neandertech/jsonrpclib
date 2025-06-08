@@ -4,10 +4,9 @@ import io.circe.{Encoder => CirceEncoder, _}
 import smithy4s.schema.CachedSchemaCompiler
 import smithy4s.Document
 import smithy4s.Document._
-import smithy4s.Document.Encoder
 import smithy4s.Schema
 
-class CirceEncoderImpl extends CachedSchemaCompiler[CirceEncoder] {
+private[smithy4sinterop] class CirceEncoderImpl extends CachedSchemaCompiler[CirceEncoder] {
   val encoder: CachedSchemaCompiler.DerivingImpl[Encoder] = Document.Encoder
 
   type Cache = encoder.Cache
