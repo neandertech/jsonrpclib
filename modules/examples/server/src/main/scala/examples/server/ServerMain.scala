@@ -4,8 +4,6 @@ import cats.effect._
 import fs2.io._
 import io.circe.generic.semiauto._
 import io.circe.Codec
-import io.circe.Decoder
-import io.circe.Encoder
 import jsonrpclib.fs2._
 import jsonrpclib.CallId
 import jsonrpclib.Endpoint
