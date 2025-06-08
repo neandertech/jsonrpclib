@@ -13,20 +13,25 @@ object CirceJsonCodec {
     * This enables encoding values of type `A` to JSON and decoding JSON back into `A`, using the structure defined by
     * the Smithy schema.
     */
-  def fromSchema[A](implicit schema: Schema[A]): Codec[A] = Codec.from(
+  def fromSchema[A](
+      schema: Schema[A],
+      documentDecoderCache: Document.Decoder.Cache,
+      documentEncoderCache: Document.Encoder.Cache
+  ): Codec[A] = Codec.from(
     c => {
       c.as[Json]
         .map(fromJson)
         .flatMap { d =>
-          Document
-            .decode[A](d)
+          Document.Decoder
+            .fromSchema(schema, documentDecoderCache)
+            .decode(d)
             .left
             .map(e =>
               DecodingFailure(DecodingFailure.Reason.CustomReason(e.getMessage), c.history ++ toCursorOps(e.path))
             )
         }
     },
-    a => documentToJson(Document.encode(a))
+    a => documentToJson(Document.Encoder.fromSchema(schema, documentEncoderCache).encode(a))
   )
 
   private def toCursorOps(path: PayloadPath): List[CursorOp] =

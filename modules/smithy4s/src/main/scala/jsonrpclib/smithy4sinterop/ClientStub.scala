@@ -5,6 +5,7 @@ import jsonrpclib.Channel
 import jsonrpclib.Monadic
 import smithy4s.~>
 import smithy4s.schema._
+import smithy4s.Document
 import smithy4s.Service
 import smithy4s.ShapeId
 
@@ -30,12 +31,14 @@ object ClientStub {
 private class ClientStub[Alg[_[_, _, _, _, _]], F[_]: Monadic](val service: Service[Alg], channel: Channel[F]) {
 
   def compile: service.Impl[F] = {
+    val documentEncoderCache = Document.Encoder.createCache()
+    val documentDecoderCache = Document.Decoder.createCache()
     val interpreter = new service.FunctorEndpointCompiler[F] {
       def apply[I, E, O, SI, SO](e: service.Endpoint[I, E, O, SI, SO]): I => F[O] = {
         val shapeId = e.id
         val spec = EndpointSpec.fromHints(e.hints).toRight(NotJsonRPCEndpoint(shapeId)).toTry.get
 
-        jsonRPCStub(e, spec)
+        jsonRPCStub(e, spec, documentEncoderCache, documentDecoderCache)
       }
     }
 
@@ -44,11 +47,15 @@ private class ClientStub[Alg[_[_, _, _, _, _]], F[_]: Monadic](val service: Serv
 
   def jsonRPCStub[I, E, O, SI, SO](
       smithy4sEndpoint: service.Endpoint[I, E, O, SI, SO],
-      endpointSpec: EndpointSpec
+      endpointSpec: EndpointSpec,
+      documentEncoderCache: Document.Encoder.Cache,
+      documentDecoderCache: Document.Decoder.Cache
   ): I => F[O] = {
 
-    implicit val inputCodec: Codec[I] = CirceJsonCodec.fromSchema(smithy4sEndpoint.input)
-    implicit val outputCodec: Codec[O] = CirceJsonCodec.fromSchema(smithy4sEndpoint.output)
+    implicit val inputCodec: Codec[I] =
+      CirceJsonCodec.fromSchema(smithy4sEndpoint.input, documentDecoderCache, documentEncoderCache)
+    implicit val outputCodec: Codec[O] =
+      CirceJsonCodec.fromSchema(smithy4sEndpoint.output, documentDecoderCache, documentEncoderCache)
 
     endpointSpec match {
       case EndpointSpec.Notification(methodName) =>
