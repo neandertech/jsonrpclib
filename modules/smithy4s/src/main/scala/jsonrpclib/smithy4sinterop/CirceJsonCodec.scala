@@ -1,12 +1,11 @@
 package jsonrpclib.smithy4sinterop
 
 import io.circe._
-import smithy4s.schema.FieldFilter
 import smithy4s.Schema
 
 object CirceJsonCodec {
 
-  object Encoder extends CirceEncoderImpl(FieldFilter.Default)
+  object Encoder extends CirceEncoderImpl
   object Decoder extends CirceDecoderImpl
 
   /** Creates a Circe `Codec[A]` from a Smithy4s `Schema[A]`.

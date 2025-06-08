@@ -8,7 +8,7 @@ import smithy4s.Document.{Encoder => _, _}
 import smithy4s.Schema
 
 class CirceDecoderImpl extends CachedSchemaCompiler[CirceDecoder] {
-  val decoder: CachedDecoderCompilerImpl = new CachedDecoderCompilerImpl()
+  val decoder: CachedSchemaCompiler.DerivingImpl[Decoder] = Document.Decoder
 
   type Cache = decoder.Cache
   def createCache(): Cache = decoder.createCache()
