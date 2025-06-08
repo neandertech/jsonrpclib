@@ -31,7 +31,7 @@ object Monadic {
     implicit class MonadicOps[F[_], A](private val fa: F[A]) extends AnyVal {
       def flatMap[B](f: A => F[B])(implicit m: Monadic[F]): F[B] = m.doFlatMap(fa)(f)
       def map[B](f: A => B)(implicit m: Monadic[F]): F[B] = m.doMap(fa)(f)
-      def attempt[B](implicit m: Monadic[F]): F[Either[Throwable, A]] = m.doAttempt(fa)
+      def attempt(implicit m: Monadic[F]): F[Either[Throwable, A]] = m.doAttempt(fa)
       def void(implicit m: Monadic[F]): F[Unit] = m.doVoid(fa)
     }
     implicit class MonadicOpsPure[A](private val a: A) extends AnyVal {
