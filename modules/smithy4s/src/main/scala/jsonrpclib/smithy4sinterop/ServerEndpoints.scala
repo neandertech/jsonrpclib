@@ -34,11 +34,12 @@ object ServerEndpoints {
   )(implicit service: Service[Alg], F: Monadic[F]): List[Endpoint[F]] = {
     val transformedService = JsonRpcTransformations.apply(service)
     val interpreter: transformedService.FunctorInterpreter[F] = transformedService.toPolyFunction(impl)
+    val codecCache = CirceJsonCodec.Codec.createCache()
     transformedService.endpoints.toList.flatMap { smithy4sEndpoint =>
       EndpointSpec
         .fromHints(smithy4sEndpoint.hints)
         .map { endpointSpec =>
-          jsonRPCEndpoint(smithy4sEndpoint, endpointSpec, interpreter)
+          jsonRPCEndpoint(smithy4sEndpoint, endpointSpec, interpreter, codecCache)
         }
         .toList
     }
@@ -55,17 +56,19 @@ object ServerEndpoints {
     *   JSON-RPC method name and interaction hints
     * @param impl
     *   Interpreter that executes the Smithy operation in `F`
+    * @param codecCache
+    *   Coche for the schema to codec compilation results
     * @return
     *   A JSON-RPC-compatible `Endpoint[F]`
     */
   private def jsonRPCEndpoint[F[_]: Monadic, Op[_, _, _, _, _], I, E, O, SI, SO](
       smithy4sEndpoint: Smithy4sEndpoint[Op, I, E, O, SI, SO],
       endpointSpec: EndpointSpec,
-      impl: FunctorInterpreter[Op, F]
+      impl: FunctorInterpreter[Op, F],
+      codecCache: CirceJsonCodec.Codec.Cache
   ): Endpoint[F] = {
-
-    implicit val inputCodec: Codec[I] = CirceJsonCodec.fromSchema(smithy4sEndpoint.input)
-    implicit val outputCodec: Codec[O] = CirceJsonCodec.fromSchema(smithy4sEndpoint.output)
+    implicit val inputCodec: Codec[I] = CirceJsonCodec.Codec.fromSchema(smithy4sEndpoint.input, codecCache)
+    implicit val outputCodec: Codec[O] = CirceJsonCodec.Codec.fromSchema(smithy4sEndpoint.output, codecCache)
 
     def errorResponse(throwable: Throwable): F[E] = throwable match {
       case smithy4sEndpoint.Error((_, e)) => e.pure
@@ -86,7 +89,7 @@ object ServerEndpoints {
               impl(op)
             }
           case Some(errorSchema) =>
-            implicit val errorCodec: ErrorEncoder[E] = errorCodecFromSchema(errorSchema)
+            implicit val errorCodec: ErrorEncoder[E] = errorCodecFromSchema(errorSchema, codecCache)
             Endpoint[F](methodName).apply[I, E, O] { (input: I) =>
               val op = smithy4sEndpoint.wrap(input)
               impl(op).attempt.flatMap {
@@ -98,8 +101,8 @@ object ServerEndpoints {
     }
   }
 
-  private def errorCodecFromSchema[A](s: ErrorSchema[A]): ErrorEncoder[A] = {
-    val circeCodec = CirceJsonCodec.fromSchema(s.schema)
+  private def errorCodecFromSchema[A](s: ErrorSchema[A], cache: CirceJsonCodec.Codec.Cache): ErrorEncoder[A] = {
+    val circeCodec = CirceJsonCodec.Codec.fromSchema(s.schema, cache)
     (a: A) =>
       ErrorPayload(
         0,
