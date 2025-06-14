@@ -59,7 +59,7 @@ private class ClientStub[Alg[_[_, _, _, _, _]], F[_]: Monadic](val service: Serv
     def errorResponse(throwable: Throwable, errorCodec: Codec[E]): F[E] = {
       throwable match {
         case ErrorPayload(_, _, Some(payload)) =>
-          errorCodec(HCursor.fromJson(payload.data)) match {
+          errorCodec.decodeJson(payload.data) match {
             case Left(err)    => ProtocolError.ParseError(err.getMessage).raiseError
             case Right(error) => error.pure
           }
