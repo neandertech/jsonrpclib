@@ -2,6 +2,7 @@ package examples.smithy.server
 
 import cats.effect._
 import fs2.io._
+import fs2.Stream
 import jsonrpclib.fs2._
 import jsonrpclib.smithy4sinterop.ClientStub
 import jsonrpclib.smithy4sinterop.ServerEndpoints
@@ -27,8 +28,11 @@ object ServerMain extends IOApp.Simple {
       FS2Channel
         .stream[IO](cancelTemplate = Some(cancelEndpoint))
         .flatMap { channel =>
-          val testClient = ClientStub(TestClient, channel)
-          channel.withEndpointsStream(ServerEndpoints(new ServerImpl(testClient)))
+          Stream.eval(IO.fromEither(ClientStub(TestClient, channel))).flatMap { testClient =>
+            Stream.eval(IO.fromEither(ServerEndpoints(new ServerImpl(testClient)))).flatMap { se =>
+              channel.withEndpointsStream(se)
+            }
+          }
         }
         .flatMap { channel =>
           fs2.Stream

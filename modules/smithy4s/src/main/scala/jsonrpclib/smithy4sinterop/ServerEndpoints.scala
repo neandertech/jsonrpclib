@@ -7,12 +7,13 @@ import jsonrpclib.ErrorPayload
 import jsonrpclib.Monadic
 import jsonrpclib.Monadic.syntax._
 import jsonrpclib.Payload
+import smithy4s.{Endpoint => Smithy4sEndpoint}
+import smithy4s.checkProtocol
 import smithy4s.kinds.FunctorAlgebra
 import smithy4s.kinds.FunctorInterpreter
 import smithy4s.schema.ErrorSchema
 import smithy4s.Service
-
-import _root_.smithy4s.{Endpoint => Smithy4sEndpoint}
+import smithy4s.UnsupportedProtocolError
 
 object ServerEndpoints {
 
@@ -21,27 +22,40 @@ object ServerEndpoints {
     * Given a Smithy `FunctorAlgebra[Alg, F]`, this extracts all operations and compiles them into JSON-RPC
     * `Endpoint[F]` handlers that can be mounted on a communication channel (e.g. `FS2Channel`).
     *
+    * Before generating endpoints, this method checks whether the service is compatible with the JSON-RPC protocol. If
+    * the protocol is unsupported, it returns a `Left(UnsupportedProtocolError)`.
+    *
     * Supports both standard request-response and notification-style endpoints, as well as Smithy-modeled errors.
     *
     * Usage:
     * {{{
-    * val endpoints = ServerEndpoints(new ServerImpl)
-    * channel.withEndpoints(endpoints)
+    * val endpointsOrError = ServerEndpoints(new ServerImpl)
+    * endpointsOrError match {
+    *   case Right(endpoints) => channel.withEndpoints(endpoints)
+    *   case Left(error)      => sys.error(s"Incompatible protocol: $error")
+    * }
     * }}}
+    *
+    * @param impl
+    *   Smithy FunctorAlgebra implementation
+    * @return
+    *   Either an error if the protocol is unsupported or a list of compiled JSON-RPC endpoints
     */
   def apply[Alg[_[_, _, _, _, _]], F[_]](
       impl: FunctorAlgebra[Alg, F]
-  )(implicit service: Service[Alg], F: Monadic[F]): List[Endpoint[F]] = {
-    val transformedService = JsonRpcTransformations.apply(service)
-    val interpreter: transformedService.FunctorInterpreter[F] = transformedService.toPolyFunction(impl)
-    val codecCache = CirceJsonCodec.Codec.createCache()
-    transformedService.endpoints.toList.flatMap { smithy4sEndpoint =>
-      EndpointSpec
-        .fromHints(smithy4sEndpoint.hints)
-        .map { endpointSpec =>
-          jsonRPCEndpoint(smithy4sEndpoint, endpointSpec, interpreter, codecCache)
-        }
-        .toList
+  )(implicit service: Service[Alg], F: Monadic[F]): Either[UnsupportedProtocolError, List[Endpoint[F]]] = {
+    checkProtocol(service, jsonrpclib.JsonRpc).map { _ =>
+      val transformedService = JsonRpcTransformations.apply(service)
+      val interpreter: transformedService.FunctorInterpreter[F] = transformedService.toPolyFunction(impl)
+      val codecCache = CirceJsonCodec.Codec.createCache()
+      transformedService.endpoints.toList.flatMap { smithy4sEndpoint =>
+        EndpointSpec
+          .fromHints(smithy4sEndpoint.hints)
+          .map { endpointSpec =>
+            jsonRPCEndpoint(smithy4sEndpoint, endpointSpec, interpreter, codecCache)
+          }
+          .toList
+      }
     }
   }
 

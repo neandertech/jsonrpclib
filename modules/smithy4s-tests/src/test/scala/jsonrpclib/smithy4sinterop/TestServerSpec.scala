@@ -53,32 +53,42 @@ object TestServerSpec extends SimpleIOSuite {
       }
   }
 
-  def setup(mkServer: FS2Channel[IO] => AlgebraWrapper) =
-    setupAux(None, mkServer.andThen(Seq(_)), _ => Seq.empty)
+  def setup(mkServer: FS2Channel[IO] => IO[AlgebraWrapper]) =
+    setupAux(None, mkServer.andThen(_.map(List(_))), _ => IO(List.empty))
 
-  def setup(mkServer: FS2Channel[IO] => AlgebraWrapper, mkClient: FS2Channel[IO] => AlgebraWrapper) =
-    setupAux(None, mkServer.andThen(Seq(_)), mkClient.andThen(Seq(_)))
+  def setup(mkServer: FS2Channel[IO] => IO[AlgebraWrapper], mkClient: FS2Channel[IO] => IO[AlgebraWrapper]) =
+    setupAux(None, mkServer.andThen(_.map(List(_))), mkClient.andThen(_.map(List(_))))
 
   def setup[Alg[_[_, _, _, _, _]]](
       cancelTemplate: CancelTemplate,
-      mkServer: FS2Channel[IO] => Seq[AlgebraWrapper],
-      mkClient: FS2Channel[IO] => Seq[AlgebraWrapper]
+      mkServer: FS2Channel[IO] => IO[List[AlgebraWrapper]],
+      mkClient: FS2Channel[IO] => IO[List[AlgebraWrapper]]
   ) = setupAux(Some(cancelTemplate), mkServer, mkClient)
 
   def setupAux[Alg[_[_, _, _, _, _]]](
       cancelTemplate: Option[CancelTemplate],
-      mkServer: FS2Channel[IO] => Seq[AlgebraWrapper],
-      mkClient: FS2Channel[IO] => Seq[AlgebraWrapper]
+      mkServer: FS2Channel[IO] => IO[List[AlgebraWrapper]],
+      mkClient: FS2Channel[IO] => IO[List[AlgebraWrapper]]
   ): Stream[IO, ClientSideChannel] = {
     for {
       serverSideChannel <- FS2Channel.stream[IO](cancelTemplate = cancelTemplate)
       clientSideChannel <- FS2Channel.stream[IO](cancelTemplate = cancelTemplate)
-      serverChannelWithEndpoints <- serverSideChannel.withEndpointsStream(mkServer(serverSideChannel).flatMap { p =>
-        ServerEndpoints(p.algebra)(p.service, Monadic[IO])
-      })
-      clientChannelWithEndpoints <- clientSideChannel.withEndpointsStream(mkClient(clientSideChannel).flatMap { p =>
-        ServerEndpoints(p.algebra)(p.service, Monadic[IO])
-      })
+      se <- Stream.eval(
+        mkServer(serverSideChannel).flatMap(
+          _.flatTraverse { p =>
+            IO.fromEither(ServerEndpoints(p.algebra)(p.service, Monadic[IO]))
+          }
+        )
+      )
+      serverChannelWithEndpoints <- serverSideChannel.withEndpointsStream(se.toSeq)
+      ce <- Stream.eval(
+        mkClient(clientSideChannel).flatMap(
+          _.flatTraverse { p =>
+            IO.fromEither(ServerEndpoints(p.algebra)(p.service, Monadic[IO]))
+          }
+        )
+      )
+      clientChannelWithEndpoints <- clientSideChannel.withEndpointsStream(ce.toSeq)
       _ <- Stream(())
         .concurrently(clientChannelWithEndpoints.output.through(serverChannelWithEndpoints.input))
         .concurrently(serverChannelWithEndpoints.output.through(clientChannelWithEndpoints.input))
@@ -93,8 +103,9 @@ object TestServerSpec extends SimpleIOSuite {
 
     for {
       clientSideChannel <- setup(channel => {
-        val testClient = ClientStub(TestClient, channel)
-        AlgebraWrapper(new ServerImpl(testClient))
+        IO.fromEither(ClientStub(TestClient, channel)).map { testClient =>
+          AlgebraWrapper(new ServerImpl(testClient))
+        }
       })
       remoteFunction = clientSideChannel.simpleStub[GreetInput, GreetOutput]("greet")
       result <- remoteFunction(GreetInput("Bob")).toStream
@@ -110,10 +121,11 @@ object TestServerSpec extends SimpleIOSuite {
       ref <- SignallingRef[IO, Option[String]](none).toStream
       clientSideChannel <- setup(
         channel => {
-          val testClient = ClientStub(TestClient, channel)
-          AlgebraWrapper(new ServerImpl(testClient))
+          IO.fromEither(ClientStub(TestClient, channel)).map { testClient =>
+            AlgebraWrapper(new ServerImpl(testClient))
+          }
         },
-        _ => AlgebraWrapper(new Client(ref))
+        _ => IO(AlgebraWrapper(new Client(ref)))
       )
       remoteFunction = clientSideChannel.notificationStub[PingInput]("ping")
       _ <- remoteFunction(PingInput("hi server")).toStream
@@ -130,17 +142,18 @@ object TestServerSpec extends SimpleIOSuite {
       ref <- SignallingRef[IO, Option[String]](none).toStream
       clientSideChannel <- setup(
         channel => {
-          val testClient = ClientStub(TestClient, channel)
-          AlgebraWrapper(new TestServer[IO] {
-            override def greet(name: String): IO[GreetOutput] = ???
+          IO.fromEither(ClientStub(TestClient, channel)).map { testClient =>
+            AlgebraWrapper(new TestServer[IO] {
+              override def greet(name: String): IO[GreetOutput] = ???
 
-            override def ping(ping: String): IO[Unit] = {
-              if (ping == "fail") IO.raiseError(new RuntimeException("throwing internal error on demand"))
-              else testClient.pong("pong")
-            }
-          })
+              override def ping(ping: String): IO[Unit] = {
+                if (ping == "fail") IO.raiseError(new RuntimeException("throwing internal error on demand"))
+                else testClient.pong("pong")
+              }
+            })
+          }
         },
-        _ => AlgebraWrapper(new Client(ref))
+        _ => IO(AlgebraWrapper(new Client(ref)))
       )
       remoteFunction = clientSideChannel.notificationStub[PingInput]("ping")
       _ <- remoteFunction(PingInput("fail")).toStream
@@ -158,11 +171,11 @@ object TestServerSpec extends SimpleIOSuite {
 
     for {
       clientSideChannel <- setup(_ => {
-        AlgebraWrapper(new TestServer[IO] {
+        IO(AlgebraWrapper(new TestServer[IO] {
           override def greet(name: String): IO[GreetOutput] = IO.raiseError(NotWelcomeError(s"$name is not welcome"))
 
           override def ping(ping: String): IO[Unit] = ???
-        })
+        }))
       })
       remoteFunction = clientSideChannel.simpleStub[GreetInput, GreetOutput]("greet")
       result <- remoteFunction(GreetInput("Alice")).attempt.toStream
@@ -184,11 +197,11 @@ object TestServerSpec extends SimpleIOSuite {
 
     for {
       clientSideChannel <- setup(_ => {
-        AlgebraWrapper(new TestServer[IO] {
+        IO(AlgebraWrapper(new TestServer[IO] {
           override def greet(name: String): IO[GreetOutput] = IO.raiseError(new RuntimeException("some other error"))
 
           override def ping(ping: String): IO[Unit] = ???
-        })
+        }))
       })
       remoteFunction = clientSideChannel.simpleStub[GreetInput, GreetOutput]("greet")
       result <- remoteFunction(GreetInput("Alice")).attempt.toStream
@@ -210,10 +223,11 @@ object TestServerSpec extends SimpleIOSuite {
       clientSideChannel <- setupAux(
         None,
         channel => {
-          val testClient = ClientStub(TestClient, channel)
-          Seq(AlgebraWrapper(new ServerImpl(testClient)), AlgebraWrapper(new WeatherServiceImpl()))
+          IO.fromEither(ClientStub(TestClient, channel)).map { testClient =>
+            List(AlgebraWrapper(new ServerImpl(testClient)), AlgebraWrapper(new WeatherServiceImpl()))
+          }
         },
-        _ => Seq.empty
+        _ => IO(List.empty)
       )
       greetResult <- {
         implicit val inputEncoder: Encoder[GreetInput] = CirceJsonCodec.fromSchema
@@ -243,7 +257,7 @@ object TestServerSpec extends SimpleIOSuite {
     }
 
     for {
-      clientSideChannel <- setup(_ => AlgebraWrapper(ServerImpl))
+      clientSideChannel <- setup(_ => IO(AlgebraWrapper(ServerImpl)))
       remoteFunction = clientSideChannel.simpleStub[GreetInput, GreetOutput]("greetWithPayload")
       result <- remoteFunction(GreetInput("Bob")).toStream
     } yield {

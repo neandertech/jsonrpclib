@@ -1,16 +1,17 @@
 package jsonrpclib.smithy4sinterop
 
 import io.circe.Codec
-import io.circe.HCursor
 import jsonrpclib.Channel
 import jsonrpclib.ErrorPayload
 import jsonrpclib.Monadic
 import jsonrpclib.Monadic.syntax._
 import jsonrpclib.ProtocolError
 import smithy4s.~>
+import smithy4s.checkProtocol
 import smithy4s.schema._
 import smithy4s.Service
 import smithy4s.ShapeId
+import smithy4s.UnsupportedProtocolError
 
 object ClientStub {
 
@@ -19,16 +20,36 @@ object ClientStub {
     * Given a Smithy `Service[Alg]` and a JSON-RPC communication `Channel[F]`, this constructs a fully functional client
     * that translates method calls into JSON-RPC messages sent over the channel.
     *
-    * Usage:
-    * {{{
-    *   val stub: MyService[IO] = ClientStub(myService, myChannel)
-    *   val response: IO[String] = stub.hello("world")
-    * }}}
+    * Before constructing the client, this method checks whether the given Smithy service supports the JSON-RPC
+    * protocol. If not, it returns a `Left(UnsupportedProtocolError)`.
     *
     * Supports both standard request-response and fire-and-forget notification endpoints.
+    *
+    * Usage:
+    * {{{
+    *   val stubOrError: Either[UnsupportedProtocolError, MyService[IO]] =
+    *     ClientStub(myService, myChannel)
+    *
+    *   val result: IO[Unit] = stubOrError match {
+    *     case Right(stub) => stub.hello("world").void
+    *     case Left(error) => IO.raiseError(new RuntimeException(error.toString))
+    *   }
+    * }}}
+    *
+    * @param service
+    *   Smithy service definition
+    * @param channel
+    *   JSON-RPC communication channel
+    * @return
+    *   Either an error if the protocol is unsupported or a compiled client implementation
     */
-  def apply[Alg[_[_, _, _, _, _]], F[_]: Monadic](service: Service[Alg], channel: Channel[F]): service.Impl[F] =
-    new ClientStub(JsonRpcTransformations.apply(service), channel).compile
+  def apply[Alg[_[_, _, _, _, _]], F[_]: Monadic](
+      service: Service[Alg],
+      channel: Channel[F]
+  ): Either[UnsupportedProtocolError, service.Impl[F]] =
+    checkProtocol(service, jsonrpclib.JsonRpc).map(_ =>
+      new ClientStub(JsonRpcTransformations.apply(service), channel).compile
+    )
 }
 
 private class ClientStub[Alg[_[_, _, _, _, _]], F[_]: Monadic](val service: Service[Alg], channel: Channel[F]) {

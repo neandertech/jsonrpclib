@@ -43,7 +43,7 @@ object TestClientSpec extends SimpleIOSuite {
 
     for {
       clientSideChannel <- setup(endpoint)
-      clientStub = ClientStub(TestServer, clientSideChannel)
+      clientStub <- Stream.eval(IO.fromEither(ClientStub(TestServer, clientSideChannel)))
       result <- clientStub.greet("Bob").toStream
     } yield {
       expect.same(result.message, "Hello Bob")
@@ -57,7 +57,7 @@ object TestClientSpec extends SimpleIOSuite {
       ref <- SignallingRef[IO, Option[PingInput]](none).toStream
       endpoint: Endpoint[IO] = Endpoint[IO]("ping").notification[PingInput](p => ref.set(p.some))
       clientSideChannel <- setup(endpoint)
-      clientStub = ClientStub(TestServer, clientSideChannel)
+      clientStub <- Stream.eval(IO.fromEither(ClientStub(TestServer, clientSideChannel)))
       _ <- clientStub.ping("hello").toStream
       result <- ref.discrete.dropWhile(_.isEmpty).take(1)
     } yield {
@@ -73,7 +73,7 @@ object TestClientSpec extends SimpleIOSuite {
 
     for {
       clientSideChannel <- setup(endpoint)
-      clientStub = ClientStub(TestServerWithPayload, clientSideChannel)
+      clientStub <- Stream.eval(IO.fromEither(ClientStub(TestServerWithPayload, clientSideChannel)))
       result <- clientStub.greetWithPayload(GreetInputPayload("Bob")).toStream
     } yield {
       expect.same(result.payload.message, "Hello Bob")
@@ -94,7 +94,7 @@ object TestClientSpec extends SimpleIOSuite {
 
     for {
       clientSideChannel <- setup(endpoint)
-      clientStub = ClientStub(TestServer, clientSideChannel)
+      clientStub <- Stream.eval(IO.fromEither(ClientStub(TestServer, clientSideChannel)))
       result <- clientStub.greet("Bob").attempt.toStream
     } yield {
       matches(result) { case Left(t: NotWelcomeError) =>
@@ -112,7 +112,7 @@ object TestClientSpec extends SimpleIOSuite {
 
     for {
       clientSideChannel <- setup(endpoint)
-      clientStub = ClientStub(TestServer, clientSideChannel)
+      clientStub <- Stream.eval(IO.fromEither(ClientStub(TestServer, clientSideChannel)))
       result <- clientStub.greet("Bob").attempt.toStream
     } yield {
       matches(result) { case Left(t: ErrorPayload) =>
