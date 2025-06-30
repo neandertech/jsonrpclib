@@ -28,16 +28,16 @@ object Monadic {
   }
 
   object syntax {
-    implicit class MonadicOps[F[_], A](private val fa: F[A]) extends AnyVal {
+    implicit final class MonadicOps[F[_], A](private val fa: F[A]) extends AnyVal {
       def flatMap[B](f: A => F[B])(implicit m: Monadic[F]): F[B] = m.doFlatMap(fa)(f)
       def map[B](f: A => B)(implicit m: Monadic[F]): F[B] = m.doMap(fa)(f)
       def attempt(implicit m: Monadic[F]): F[Either[Throwable, A]] = m.doAttempt(fa)
       def void(implicit m: Monadic[F]): F[Unit] = m.doVoid(fa)
     }
-    implicit class MonadicOpsPure[A](private val a: A) extends AnyVal {
+    implicit final class MonadicOpsPure[A](private val a: A) extends AnyVal {
       def pure[F[_]](implicit m: Monadic[F]): F[A] = m.doPure(a)
     }
-    implicit class MonadicOpsThrowable(private val t: Throwable) extends AnyVal {
+    implicit final class MonadicOpsThrowable(private val t: Throwable) extends AnyVal {
       def raiseError[F[_], A](implicit m: Monadic[F]): F[A] = m.doRaiseError(t)
     }
   }
