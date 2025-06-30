@@ -1,7 +1,10 @@
 package jsonrpclib
 
-import weaver._
+import cats.syntax.all._
+import com.github.plokhotnyuk.jsoniter_scala.circe.JsoniterScalaCodec._
 import com.github.plokhotnyuk.jsoniter_scala.core._
+import io.circe.Json
+import weaver._
 
 object CallIdSpec extends FunSuite {
   test("json parsing") {
@@ -12,9 +15,9 @@ object CallIdSpec extends FunSuite {
     val longJson = Long.MaxValue.toString
 
     val nullJson = "null"
-    assert.same(readFromString[CallId](strJson), CallId.StringId("25")) &&
-    assert.same(readFromString[CallId](intJson), CallId.NumberId(25)) &&
-    assert.same(readFromString[CallId](longJson), CallId.NumberId(Long.MaxValue)) &&
-    assert.same(readFromString[CallId](nullJson), CallId.NullId)
+    assert.same(readFromString[Json](strJson).as[CallId], CallId.StringId("25").asRight) &&
+    assert.same(readFromString[Json](intJson).as[CallId], CallId.NumberId(25).asRight) &&
+    assert.same(readFromString[Json](longJson).as[CallId], CallId.NumberId(Long.MaxValue).asRight) &&
+    assert.same(readFromString[Json](nullJson).as[CallId], CallId.NullId.asRight)
   }
 }

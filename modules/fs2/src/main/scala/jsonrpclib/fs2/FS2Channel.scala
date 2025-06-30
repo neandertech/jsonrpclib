@@ -1,22 +1,31 @@
 package jsonrpclib
 package fs2
 
-import _root_.fs2.Pipe
-import _root_.fs2.Stream
+import cats.effect.kernel._
+import cats.effect.std.Supervisor
+import cats.effect.syntax.all._
+import cats.effect.Fiber
+import cats.syntax.all._
 import cats.Applicative
 import cats.Functor
 import cats.Monad
 import cats.MonadThrow
-import cats.effect.Fiber
-import cats.effect.kernel._
-import cats.effect.std.Supervisor
-import cats.syntax.all._
-import cats.effect.syntax.all._
+import io.circe.Codec
 import jsonrpclib.internals.MessageDispatcher
 
-import scala.util.Try
 import java.util.regex.Pattern
+import scala.util.Try
 
+import _root_.fs2.Pipe
+import _root_.fs2.Stream
+
+/** A JSON-RPC communication channel built on top of `fs2.Stream`.
+  *
+  * `FS2Channel[F]` enables streaming JSON-RPC messages into and out of an effectful system. It provides methods to
+  * register handlers (`Endpoint[F]`) for specific method names.
+  *
+  * This is the primary server-side integration point for using JSON-RPC over FS2.
+  */
 trait FS2Channel[F[_]] extends Channel[F] {
 
   def input: Pipe[F, Message, Unit]
@@ -47,14 +56,28 @@ trait FS2Channel[F[_]] extends Channel[F] {
 
 object FS2Channel {
 
-  def apply[F[_]: Concurrent](
+  /** Creates a new `FS2Channel[F]` as a managed resource with a configurable buffer size for bidirectional message
+    * processing.
+    *
+    * Optionally, a `CancelTemplate` can be provided to support client-initiated cancellation of inflight requests via a
+    * dedicated cancellation endpoint.
+    *
+    * @param bufferSize
+    *   Size of the internal outbound message queue (default: 2048)
+    * @param cancelTemplate
+    *   Optional handler that defines how to decode and handle cancellation requests
+    *
+    * @return
+    *   A `Resource` that manages the lifecycle of the channel and its internal supervisor
+    */
+  def resource[F[_]: Concurrent](
       bufferSize: Int = 2048,
       cancelTemplate: Option[CancelTemplate] = None
-  ): Stream[F, FS2Channel[F]] = {
+  ): Resource[F, FS2Channel[F]] = {
     for {
-      supervisor <- Stream.resource(Supervisor[F])
-      ref <- Ref[F].of(State[F](Map.empty, Map.empty, Map.empty, Vector.empty, 0)).toStream
-      queue <- cats.effect.std.Queue.bounded[F, Message](bufferSize).toStream
+      supervisor <- Supervisor[F]
+      ref <- Resource.eval(Ref[F].of(State[F](Map.empty, Map.empty, Map.empty, Vector.empty, 0)))
+      queue <- Resource.eval(cats.effect.std.Queue.bounded[F, Message](bufferSize))
       impl = new Impl(queue, ref, supervisor, cancelTemplate)
 
       // Creating a bespoke endpoint to receive cancelation requests
@@ -66,9 +89,20 @@ object FS2Channel {
         }
       }
       // mounting the cancelation endpoint
-      _ <- maybeCancelEndpoint.traverse_(ep => impl.mountEndpoint(ep)).toStream
+      _ <- Resource.eval(maybeCancelEndpoint.traverse_(ep => impl.mountEndpoint(ep)))
     } yield impl
   }
+
+  @deprecated("use stream or resource", "0.0.9")
+  def apply[F[_]: Concurrent](
+      bufferSize: Int = 2048,
+      cancelTemplate: Option[CancelTemplate] = None
+  ): Stream[F, FS2Channel[F]] = stream(bufferSize, cancelTemplate)
+
+  def stream[F[_]: Concurrent](
+      bufferSize: Int = 2048,
+      cancelTemplate: Option[CancelTemplate] = None
+  ): Stream[F, FS2Channel[F]] = Stream.resource(resource(bufferSize, cancelTemplate))
 
   private case class State[F[_]](
       runningCalls: Map[CallId, Fiber[F, Throwable, Unit]],

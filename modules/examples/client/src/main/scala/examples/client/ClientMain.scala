@@ -2,13 +2,13 @@ package examples.client
 
 import cats.effect._
 import cats.syntax.all._
-import com.github.plokhotnyuk.jsoniter_scala.core.JsonValueCodec
-import com.github.plokhotnyuk.jsoniter_scala.macros.JsonCodecMaker
-import fs2.Stream
 import fs2.io._
 import fs2.io.process.Processes
-import jsonrpclib.CallId
+import fs2.Stream
+import io.circe.generic.semiauto._
+import io.circe.Codec
 import jsonrpclib.fs2._
+import jsonrpclib.CallId
 
 object ClientMain extends IOApp.Simple {
 
@@ -18,7 +18,7 @@ object ClientMain extends IOApp.Simple {
   // Creating a datatype that'll serve as a request (and response) of an endpoint
   case class IntWrapper(value: Int)
   object IntWrapper {
-    implicit val jcodec: JsonValueCodec[IntWrapper] = JsonCodecMaker.make
+    implicit val codec: Codec[IntWrapper] = deriveCodec
   }
 
   type IOStream[A] = fs2.Stream[IO, A]
@@ -32,7 +32,7 @@ object ClientMain extends IOApp.Simple {
       // Starting the server
       rp <- fs2.Stream.resource(Processes[IO].spawn(process.ProcessBuilder("java", "-jar", serverJar)))
       // Creating a channel that will be used to communicate to the server
-      fs2Channel <- FS2Channel[IO](cancelTemplate = cancelEndpoint.some)
+      fs2Channel <- FS2Channel.stream[IO](cancelTemplate = cancelEndpoint.some)
       _ <- Stream(())
         .concurrently(fs2Channel.output.through(lsp.encodeMessages).through(rp.stdin))
         .concurrently(rp.stdout.through(lsp.decodeMessages).through(fs2Channel.inputOrBounce))

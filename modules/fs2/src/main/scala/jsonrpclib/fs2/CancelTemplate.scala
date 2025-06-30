@@ -1,6 +1,6 @@
 package jsonrpclib.fs2
 
-import jsonrpclib.Codec
+import io.circe.Codec
 import jsonrpclib.CallId
 
 /** A cancelation template that represents the RPC method by which cancelation

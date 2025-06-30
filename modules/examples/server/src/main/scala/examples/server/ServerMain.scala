@@ -1,11 +1,11 @@
 package examples.server
 
-import jsonrpclib.CallId
-import jsonrpclib.fs2._
 import cats.effect._
 import fs2.io._
-import com.github.plokhotnyuk.jsoniter_scala.core.JsonValueCodec
-import com.github.plokhotnyuk.jsoniter_scala.macros.JsonCodecMaker
+import io.circe.generic.semiauto._
+import io.circe.Codec
+import jsonrpclib.fs2._
+import jsonrpclib.CallId
 import jsonrpclib.Endpoint
 
 object ServerMain extends IOApp.Simple {
@@ -16,7 +16,7 @@ object ServerMain extends IOApp.Simple {
   // Creating a datatype that'll serve as a request (and response) of an endpoint
   case class IntWrapper(value: Int)
   object IntWrapper {
-    implicit val jcodec: JsonValueCodec[IntWrapper] = JsonCodecMaker.make
+    implicit val codec: Codec[IntWrapper] = deriveCodec
   }
 
   // Implementing an incrementation endpoint
@@ -28,7 +28,8 @@ object ServerMain extends IOApp.Simple {
   def run: IO[Unit] = {
     // Using errorln as stdout is used by the RPC channel
     IO.consoleForIO.errorln("Starting server") >>
-      FS2Channel[IO](cancelTemplate = Some(cancelEndpoint))
+      FS2Channel
+        .stream[IO](cancelTemplate = Some(cancelEndpoint))
         .flatMap(_.withEndpointStream(increment)) // mounting an endpoint onto the channel
         .flatMap(channel =>
           fs2.Stream

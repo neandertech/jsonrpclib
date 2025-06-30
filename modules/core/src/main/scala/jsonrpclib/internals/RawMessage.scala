@@ -1,9 +1,10 @@
 package jsonrpclib
 package internals
 
-import com.github.plokhotnyuk.jsoniter_scala.core._
-import com.github.plokhotnyuk.jsoniter_scala.macros.JsonCodecMaker
-import com.github.plokhotnyuk.jsoniter_scala.macros.CodecMakerConfig
+import io.circe.syntax._
+import io.circe.Decoder
+import io.circe.Encoder
+import io.circe.Json
 
 private[jsonrpclib] case class RawMessage(
     jsonrpc: String,
@@ -44,7 +45,8 @@ private[jsonrpclib] object RawMessage {
   val `2.0` = "2.0"
 
   def from(message: Message): RawMessage = message match {
-    case InputMessage.NotificationMessage(method, params) => RawMessage(`2.0`, method = Some(method), params = params)
+    case InputMessage.NotificationMessage(method, params) =>
+      RawMessage(`2.0`, method = Some(method), params = params)
     case InputMessage.RequestMessage(method, callId, params) =>
       RawMessage(`2.0`, method = Some(method), params = params, id = Some(callId))
     case OutputMessage.ErrorMessage(callId, errorPayload) =>
@@ -53,7 +55,39 @@ private[jsonrpclib] object RawMessage {
       RawMessage(`2.0`, result = Some(data.stripNull), id = Some(callId))
   }
 
-  implicit val rawMessageJsonValueCodecs: JsonValueCodec[RawMessage] =
-    JsonCodecMaker.make(CodecMakerConfig.withSkipNestedOptionValues(true))
+  // Custom encoder to flatten nested Option[Option[Payload]]
+  implicit val rawMessageEncoder: Encoder[RawMessage] = { msg =>
+    Json
+      .obj(
+        List(
+          "jsonrpc" -> msg.jsonrpc.asJson,
+          "method" -> msg.method.asJson,
+          "params" -> msg.params.asJson,
+          "error" -> msg.error.asJson,
+          "id" -> msg.id.asJson
+        ).filterNot(_._2.isNull) ++ {
+          msg.result match {
+            case Some(Some(payload)) => List("result" -> payload.asJson)
+            case Some(None)          => List("result" -> Json.Null)
+            case None                => Nil
+          }
+        }: _*
+      )
+  }
 
+  // Custom decoder to wrap result into Option[Option[Payload]]
+  implicit val rawMessageDecoder: Decoder[RawMessage] = Decoder.instance { c =>
+    for {
+      jsonrpc <- c.downField("jsonrpc").as[String]
+      method <- c.downField("method").as[Option[String]]
+      params <- c.downField("params").as[Option[Payload]]
+      error <- c.downField("error").as[Option[ErrorPayload]]
+      id <- c.downField("id").as[Option[CallId]]
+      resultOpt <-
+        c.downField("result")
+          .success
+          .map(_.as[Option[Payload]].map(Some(_)))
+          .getOrElse(Right(None))
+    } yield RawMessage(jsonrpc, method, resultOpt, error, params, id)
+  }
 }
