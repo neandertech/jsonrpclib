@@ -1,5 +1,6 @@
 import org.typelevel.sbt.tpolecat.DevMode
 import org.typelevel.sbt.tpolecat.OptionsMode
+
 import java.net.URI
 
 inThisBuild(
@@ -9,9 +10,7 @@ inThisBuild(
     licenses := List(License.Apache2),
     developers := List(
       Developer("Baccata", "Olivier Mélois", "baccata64@gmail.com", URI.create("https://github.com/baccata").toURL)
-    ),
-    sonatypeCredentialHost := "s01.oss.sonatype.org",
-    sonatypeRepository := "https://s01.oss.sonatype.org/service/local"
+    )
   )
 )
 
@@ -40,7 +39,7 @@ val commonSettings = Seq(
       case Some((2, _)) => Seq(s"-release:$jdkVersion")
       case _            => Seq(s"-java-output-version:$jdkVersion")
     }
-  },
+  }
 )
 
 val commonJvmSettings = Seq(
