@@ -32,7 +32,7 @@ val commonSettings = Seq(
     "com.disneystreaming" %%% "weaver-cats" % "0.8.4" % Test
   ),
   mimaPreviousArtifacts := Set(
-    // organization.value %%% name.value % "0.0.7"
+    organization.value %%% name.value % "0.1.0"
   ),
   scalacOptions ++= {
     CrossVersion.partialVersion(scalaVersion.value) match {
