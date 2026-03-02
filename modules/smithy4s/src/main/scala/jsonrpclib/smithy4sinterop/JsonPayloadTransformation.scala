@@ -13,7 +13,9 @@ private[jsonrpclib] object JsonPayloadTransformation extends (Schema ~> Schema) 
         struct.fields
           .collectFirst {
             case field if field.hints.has[JsonRpcPayload] =>
-              field.schema.biject[b]((f: Any) => struct.make(Vector(f)))(field.get)
+              field.schema
+                .transformHintsLocally(_.filterNot(_.keyId == JsonRpcPayload.id))
+                .biject[b]((f: Any) => struct.make(Vector(f)))(field.get)
           }
           .getOrElse(fa)
       case _ => fa
