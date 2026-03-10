@@ -16,8 +16,8 @@ private[jsonrpclib] object JsonRpcTransformations {
       .mapEndpointEach(
         Endpoint.mapSchema(
           OperationSchema
-            .mapInputK(JsonPayloadTransformation)
-            .andThen(OperationSchema.mapOutputK(JsonPayloadTransformation))
+            .mapInputK(payloadTransformation)
+            .andThen(OperationSchema.mapOutputK(payloadTransformation))
             .andThen(OperationSchema.mapErrorK(errorTransformation))
         )
       )
