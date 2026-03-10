@@ -31,6 +31,8 @@ object JsonRpcOperationValidatorSpec extends FunSuite {
         |}
         |""".stripMargin
     )
+      .unwrap()
+
     success
   }
 
