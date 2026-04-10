@@ -15,9 +15,9 @@ object CallIdSpec extends FunSuite {
     val longJson = Long.MaxValue.toString
 
     val nullJson = "null"
-    assert.same(readFromString[Json](strJson).as[CallId], CallId.StringId("25").asRight) &&
-    assert.same(readFromString[Json](intJson).as[CallId], CallId.NumberId(25).asRight) &&
-    assert.same(readFromString[Json](longJson).as[CallId], CallId.NumberId(Long.MaxValue).asRight) &&
-    assert.same(readFromString[Json](nullJson).as[CallId], CallId.NullId.asRight)
+    expect.same(readFromString[Json](strJson).as[CallId], CallId.StringId("25").asRight) &&
+    expect.same(readFromString[Json](intJson).as[CallId], CallId.NumberId(25).asRight) &&
+    expect.same(readFromString[Json](longJson).as[CallId], CallId.NumberId(Long.MaxValue).asRight) &&
+    expect.same(readFromString[Json](nullJson).as[CallId], CallId.NullId.asRight)
   }
 }

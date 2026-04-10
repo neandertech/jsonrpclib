@@ -18,7 +18,7 @@ object HeaderSpec extends FunSuite {
       "foo..."
     )
     val expected = Result(LSPHeaders(123, "application/vscode-jsonrpc", "utf-8"), "foo...")
-    assert.same(result, Right(expected))
+    expect.same(result, Right(expected))
   }
 
   test("headers (only content-)") {
@@ -28,7 +28,7 @@ object HeaderSpec extends FunSuite {
       "foo..."
     )
     val expected = Result(LSPHeaders(123, "application/json", "UTF-8"), "foo...")
-    assert.same(result, Right(expected))
+    expect.same(result, Right(expected))
   }
 
   test("no header)") {
@@ -36,7 +36,7 @@ object HeaderSpec extends FunSuite {
       "foo"
     )
     val expected = ProtocolError.ParseError("Could not parse LSP headers")
-    assert.same(result, Left(expected))
+    expect.same(result, Left(expected))
   }
 
   test("missing content-length") {
@@ -46,7 +46,7 @@ object HeaderSpec extends FunSuite {
       "foo..."
     )
     val expected = ProtocolError.ParseError("Missing Content-Length header")
-    assert.same(result, Left(expected))
+    expect.same(result, Left(expected))
   }
 
   case class Result(header: LSPHeaders, rest: String)
