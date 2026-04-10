@@ -51,7 +51,7 @@ object JsonNotificationOutputValidatorSpec extends FunSuite {
       )
       .build()
 
-    assert(events.contains(expected))
+    expect(events.contains(expected))
   }
 
 }

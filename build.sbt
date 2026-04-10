@@ -14,7 +14,7 @@ inThisBuild(
   )
 )
 
-val scala213 = "2.13.16"
+val scala213 = "2.13.18"
 val scala3 = "3.3.6"
 val jdkVersion = 11
 val allScalaVersions = List(scala213, scala3)
@@ -108,7 +108,7 @@ val smithyTests = projectMatrix
   .settings(
     publish / skip := true,
     libraryDependencies ++= Seq(
-      "com.disneystreaming" %%% "weaver-cats" % "0.12.0" % Test
+      "org.typelevel" %%% "weaver-cats" % "0.12.0" % Test
     )
   )
   .disablePlugins(MimaPlugin)

@@ -32,18 +32,18 @@ object JsonPayloadValidatorSpec extends FunSuite {
         |
         |structure OpInput {
         |  @jsonRpcPayload
-        |  data: String  
+        |  data: String
         |}
         |
         |structure OpOutput {
         |  @jsonRpcPayload
-        |  data: String  
+        |  data: String
         |}
         |
         |@error("client")
         |structure OpError {
         |  @jsonRpcPayload
-        |  data: String  
+        |  data: String
         |}
         |
         |""".stripMargin
@@ -72,12 +72,12 @@ object JsonPayloadValidatorSpec extends FunSuite {
         |}
         |
         |structure OpInput {
-        |  data: NestedStructure  
+        |  data: NestedStructure
         |}
         |
         |structure NestedStructure {
         |  @jsonRpcPayload
-        |  data: String  
+        |  data: String
         |}
         |""".stripMargin
       )
@@ -93,7 +93,7 @@ object JsonPayloadValidatorSpec extends FunSuite {
       )
       .build()
 
-    assert(events.contains(expected))
+    expect(events.contains(expected))
   }
 
 }

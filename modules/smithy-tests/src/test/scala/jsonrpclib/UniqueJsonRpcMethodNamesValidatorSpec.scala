@@ -67,7 +67,7 @@ object UniqueJsonRpcMethodNamesValidatorSpec extends FunSuite {
       )
       .build()
 
-    assert(events.contains(expected))
+    expect(events.contains(expected))
   }
 
   test("no error if two services use the same operation") {
