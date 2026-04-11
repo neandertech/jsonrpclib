@@ -21,16 +21,16 @@ object RawMessageSpec extends FunSuite {
     val invalidRawMessage =
       readFromString[Json](""" {"jsonrpc":"2.0","id":3} """.trim).as[RawMessage].fold(throw _, identity)
 
-    assert.same(
+    expect.same(
       rawMessage,
       RawMessage(jsonrpc = "2.0", result = Some(None), id = Some(NumberId(3)))
     ) &&
-    assert.same(rawMessage.toMessage, Right(ResponseMessage(NumberId(3), Payload.NullPayload))) &&
-    assert.same(
+    expect.same(rawMessage.toMessage, Right(ResponseMessage(NumberId(3), Payload.NullPayload))) &&
+    expect.same(
       invalidRawMessage,
       RawMessage(jsonrpc = "2.0", result = None, id = Some(NumberId(3)))
     ) &&
-    assert(invalidRawMessage.toMessage.isLeft, invalidRawMessage.toMessage.toString)
+    expect(invalidRawMessage.toMessage.isLeft, invalidRawMessage.toMessage.toString)
   }
 
   test("request message serialization") {
@@ -38,7 +38,19 @@ object RawMessageSpec extends FunSuite {
     val expected = """{"jsonrpc":"2.0","method":"my/method","id":1}"""
     val result = writeToString(input.asJson)
 
-    assert(result == expected, s"Expected: $expected, got: $result")
+    expect(result == expected, s"Expected: $expected, got: $result")
+  }
+
+  test("request message serialization with params") {
+    val input: Message = InputMessage.RequestMessage(
+      "greet",
+      CallId.NumberId(0),
+      Some(Payload(Json.obj("name" -> Json.fromString("Client"))))
+    )
+    val expected = """{"jsonrpc":"2.0","method":"greet","params":{"name":"Client"},"id":0}"""
+    val result = writeToString(input.asJson)
+
+    expect(result == expected, s"Expected: $expected, got: $result")
   }
 
   test("notification message serialization") {
@@ -46,7 +58,7 @@ object RawMessageSpec extends FunSuite {
     val expected = """{"jsonrpc":"2.0","method":"my/method"}"""
     val result = writeToString(input.asJson)
 
-    assert(result == expected, s"Expected: $expected, got: $result")
+    expect(result == expected, s"Expected: $expected, got: $result")
   }
 
   test("response message serialization") {
@@ -54,7 +66,7 @@ object RawMessageSpec extends FunSuite {
     val expected = """{"jsonrpc":"2.0","id":1,"result":null}"""
     val result = writeToString(input.asJson)
 
-    assert(result == expected, s"Expected: $expected, got: $result")
+    expect(result == expected, s"Expected: $expected, got: $result")
   }
 
   test("response message serialization with nested results") {
@@ -63,7 +75,7 @@ object RawMessageSpec extends FunSuite {
     val expected = """{"jsonrpc":"2.0","id":1,"result":{"result":1}}"""
     val result = writeToString(input.asJson)
 
-    assert(result == expected, s"Expected: $expected, got: $result")
+    expect(result == expected, s"Expected: $expected, got: $result")
   }
 
   test("error message serialization") {
@@ -74,7 +86,7 @@ object RawMessageSpec extends FunSuite {
     val expected = """{"jsonrpc":"2.0","error":{"code":-32603,"message":"Internal error","data":null},"id":1}"""
     val result = writeToString(input.asJson)
 
-    assert(result == expected, s"Expected: $expected, got: $result")
+    expect(result == expected, s"Expected: $expected, got: $result")
   }
 
 }

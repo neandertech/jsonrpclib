@@ -14,7 +14,7 @@ inThisBuild(
   )
 )
 
-val scala213 = "2.13.16"
+val scala213 = "2.13.18"
 val scala3 = "3.3.6"
 val jdkVersion = 11
 val allScalaVersions = List(scala213, scala3)
@@ -22,14 +22,14 @@ val jvmScalaVersions = allScalaVersions
 val jsScalaVersions = allScalaVersions
 val nativeScalaVersions = allScalaVersions
 
-val fs2Version = "3.12.0"
+val fs2Version = "3.13.0"
 
 ThisBuild / versionScheme := Some("early-semver")
 ThisBuild / tpolecatOptionsMode := DevMode
 
 val commonSettings = Seq(
   libraryDependencies ++= Seq(
-    "com.disneystreaming" %%% "weaver-cats" % "0.8.4" % Test
+    "org.typelevel" %%% "weaver-cats" % "0.12.0" % Test
   ),
   mimaPreviousArtifacts := Set(
     // organization.value %%% name.value % "0.0.7"
@@ -68,7 +68,7 @@ val core = projectMatrix
     name := "jsonrpclib-core",
     commonSettings,
     libraryDependencies ++= Seq(
-      "com.github.plokhotnyuk.jsoniter-scala" %%% "jsoniter-scala-circe" % "2.30.2"
+      "com.github.plokhotnyuk.jsoniter-scala" %%% "jsoniter-scala-circe" % "2.38.9"
     )
   )
 
@@ -84,7 +84,7 @@ val fs2 = projectMatrix
     commonSettings,
     libraryDependencies ++= Seq(
       "co.fs2" %%% "fs2-core" % fs2Version,
-      "io.circe" %%% "circe-generic" % "0.14.7" % Test
+      "io.circe" %%% "circe-generic" % "0.14.15" % Test
     )
   )
 
@@ -108,7 +108,7 @@ val smithyTests = projectMatrix
   .settings(
     publish / skip := true,
     libraryDependencies ++= Seq(
-      "com.disneystreaming" %%% "weaver-cats" % "0.8.4" % Test
+      "org.typelevel" %%% "weaver-cats" % "0.12.0" % Test
     )
   )
   .disablePlugins(MimaPlugin)
@@ -159,7 +159,7 @@ val smithy4sTests = projectMatrix
     commonSettings,
     publish / skip := true,
     libraryDependencies ++= Seq(
-      "io.circe" %%% "circe-generic" % "0.14.7"
+      "io.circe" %%% "circe-generic" % "0.14.15"
     ),
     buildTimeProtocolDependency
   )
@@ -173,7 +173,7 @@ val exampleServer = projectMatrix
     publish / skip := true,
     libraryDependencies ++= Seq(
       "co.fs2" %%% "fs2-io" % fs2Version,
-      "io.circe" %%% "circe-generic" % "0.14.7"
+      "io.circe" %%% "circe-generic" % "0.14.15"
     )
   )
   .disablePlugins(MimaPlugin)
@@ -194,7 +194,7 @@ val exampleClient = projectMatrix
     publish / skip := true,
     libraryDependencies ++= Seq(
       "co.fs2" %%% "fs2-io" % fs2Version,
-      "io.circe" %%% "circe-generic" % "0.14.7"
+      "io.circe" %%% "circe-generic" % "0.14.15"
     )
   )
   .disablePlugins(MimaPlugin)
