@@ -101,18 +101,18 @@ private[jsonrpclib] abstract class MessageDispatcher[F[_]](implicit F: Monadic[F
         val message = "Missing payload"
         val pError = ProtocolError.InvalidRequest(message)
         sendProtocolError(pError)
-      case (InputMessage.RequestMessage(_, _, None), _: RequestResponseEndpoint[F, in, err, out]) =>
+      case (InputMessage.RequestMessage(_, callId, None), _: RequestResponseEndpoint[F, in, err, out]) =>
         val message = "Missing payload"
         val pError = ProtocolError.InvalidRequest(message)
-        sendProtocolError(pError)
+        sendProtocolError(callId, pError)
       case (InputMessage.NotificationMessage(_, _), ep: RequestResponseEndpoint[F, in, err, out]) =>
         val message = s"This ${ep.method} endpoint cannot process notifications, request is missing callId"
         val pError = ProtocolError.InvalidRequest(message)
         sendProtocolError(pError)
-      case (InputMessage.RequestMessage(_, _, _), ep: NotificationEndpoint[F, in]) =>
+      case (InputMessage.RequestMessage(_, callId, _), ep: NotificationEndpoint[F, in]) =>
         val message = s"This ${ep.method} endpoint expects notifications and cannot return a result"
         val pError = ProtocolError.InvalidRequest(message)
-        sendProtocolError(pError)
+        sendProtocolError(callId, pError)
     }
   }
 
