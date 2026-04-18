@@ -36,11 +36,11 @@ string jsonRpcNotification
 
 /// Binds a single structure member to the payload of a jsonrpc message.
 /// Just like @httpPayload, but for jsonRpc.
-@trait(selector: "structure > member", structurallyExclusive: "member")
+@trait(selector: "structure > member[trait|required]", structurallyExclusive: "member")
 @traitValidators({
-    "jsonRpcPayload.OnlyTopLevel": { 
-        message: "jsonRpcPayload can only be used on the top level of an operation input/output/error.", 
-        severity: "ERROR", 
+    "jsonRpcPayload.OnlyTopLevel": {
+        message: "jsonRpcPayload can only be used on the top level of an operation input/output/error.",
+        severity: "ERROR",
         selector: "$allowedShapes(:root(operation -[input, output, error]-> structure > member)) :not(:in(${allowedShapes}))"
     }
 })

@@ -31,17 +31,20 @@ object JsonPayloadValidatorSpec extends FunSuite {
         |}
         |
         |structure OpInput {
+        |  @required
         |  @jsonRpcPayload
         |  data: String
         |}
         |
         |structure OpOutput {
+        |  @required
         |  @jsonRpcPayload
         |  data: String
         |}
         |
         |@error("client")
         |structure OpError {
+        |  @required
         |  @jsonRpcPayload
         |  data: String
         |}
@@ -76,6 +79,7 @@ object JsonPayloadValidatorSpec extends FunSuite {
         |}
         |
         |structure NestedStructure {
+        |  @required
         |  @jsonRpcPayload
         |  data: String
         |}
