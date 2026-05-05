@@ -19,7 +19,7 @@ object JsonNotificationOutputValidatorSpec extends FunSuite {
         |operation NotifySomething {
         |}
         |""".stripMargin
-    )
+    ): Unit
     success
   }
   test("return an error when a @jsonNotification operation does not have unit output") {
