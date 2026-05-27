@@ -11,11 +11,11 @@ sealed trait OutputMessage extends Message {
 }
 
 object InputMessage {
-  case class RequestMessage(method: String, callId: CallId, params: Option[Payload]) extends InputMessage {
+  case class RequestMessage(method: String, callId: CallId, params: Payload) extends InputMessage {
     def maybeCallId: Option[CallId] = Some(callId)
   }
 
-  case class NotificationMessage(method: String, params: Option[Payload]) extends InputMessage {
+  case class NotificationMessage(method: String, params: Payload) extends InputMessage {
     def maybeCallId: Option[CallId] = None
   }
 

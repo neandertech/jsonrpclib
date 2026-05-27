@@ -26,7 +26,7 @@ private[jsonrpclib] abstract class MessageDispatcher[F[_]](implicit F: Monadic[F
 
   def notificationStub[In](method: String)(implicit inCodec: Encoder[In]): In => F[Unit] = { (input: In) =>
     val encoded = inCodec(input)
-    val message = InputMessage.NotificationMessage(method, Some(Payload(encoded)))
+    val message = InputMessage.NotificationMessage(method, Payload(encoded))
     sendMessage(message)
   }
 
@@ -36,7 +36,7 @@ private[jsonrpclib] abstract class MessageDispatcher[F[_]](implicit F: Monadic[F
     (input: In) =>
       val encoded = inCodec(input)
       doFlatMap(nextCallId()) { callId =>
-        val message = InputMessage.RequestMessage(method, callId, Some(Payload(encoded)))
+        val message = InputMessage.RequestMessage(method, callId, Payload(encoded))
         doFlatMap(createPromise[Either[Err, Out]](callId)) { case (fulfill, future) =>
           val pc = createPendingCall(errDecoder, outCodec, fulfill)
           doFlatMap(storePendingCall(callId, pc))(_ => doFlatMap(sendMessage(message))(_ => future()))
@@ -74,12 +74,12 @@ private[jsonrpclib] abstract class MessageDispatcher[F[_]](implicit F: Monadic[F
 
   private def executeInputMessage(input: InputMessage, endpoint: Endpoint[F]): F[Unit] = {
     (input, endpoint) match {
-      case (InputMessage.NotificationMessage(_, Some(params)), ep: NotificationEndpoint[F, in]) =>
+      case (InputMessage.NotificationMessage(_, params), ep: NotificationEndpoint[F, in]) =>
         ep.inCodec(HCursor.fromJson(params.data)) match {
           case Right(value) => ep.run(input, value)
           case Left(value)  => reportError(Some(params), ProtocolError.ParseError(value.getMessage), ep.method)
         }
-      case (InputMessage.RequestMessage(_, callId, Some(params)), ep: RequestResponseEndpoint[F, in, err, out]) =>
+      case (InputMessage.RequestMessage(_, callId, params), ep: RequestResponseEndpoint[F, in, err, out]) =>
         ep.inCodec(HCursor.fromJson(params.data)) match {
           case Right(value) =>
             doFlatMap(doAttempt(ep.run(input, value))) {
@@ -97,14 +97,6 @@ private[jsonrpclib] abstract class MessageDispatcher[F[_]](implicit F: Monadic[F
           case Left(pError) =>
             sendProtocolError(callId, ProtocolError.ParseError(pError.getMessage))
         }
-      case (InputMessage.NotificationMessage(_, None), _: NotificationEndpoint[F, in]) =>
-        val message = "Missing payload"
-        val pError = ProtocolError.InvalidRequest(message)
-        sendProtocolError(pError)
-      case (InputMessage.RequestMessage(_, callId, None), _: RequestResponseEndpoint[F, in, err, out]) =>
-        val message = "Missing payload"
-        val pError = ProtocolError.InvalidRequest(message)
-        sendProtocolError(callId, pError)
       case (InputMessage.NotificationMessage(_, _), ep: RequestResponseEndpoint[F, in, err, out]) =>
         val message = s"This ${ep.method} endpoint cannot process notifications, request is missing callId"
         val pError = ProtocolError.InvalidRequest(message)

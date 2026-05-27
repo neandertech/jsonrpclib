@@ -11,6 +11,7 @@ case class Payload(data: Json) {
 object Payload {
 
   val NullPayload: Payload = Payload(Json.Null)
+  val Empty: Payload = Payload(Json.obj())
 
   implicit val payloadEncoder: Encoder[Payload] = Encoder[Json].contramap(_.data)
   implicit val payloadDecoder: Decoder[Payload] = Decoder[Json].map(Payload(_))

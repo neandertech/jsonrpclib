@@ -50,14 +50,13 @@ object RawMessageSpec extends FunSuite {
       .flatMap(_.toMessage.left.map(e => new RuntimeException(e.getMessage)))
       .fold(throw _, identity)
 
-    val emptyObj = Some(Payload(Json.obj()))
-    expect.same(omitted, InputMessage.RequestMessage("m", NumberId(1), emptyObj)) &&
-    expect.same(nulled, InputMessage.RequestMessage("m", NumberId(2), emptyObj)) &&
-    expect.same(notif, InputMessage.NotificationMessage("m", emptyObj))
+    expect.same(omitted, InputMessage.RequestMessage("m", NumberId(1), Payload.Empty)) &&
+    expect.same(nulled, InputMessage.RequestMessage("m", NumberId(2), Payload.Empty)) &&
+    expect.same(notif, InputMessage.NotificationMessage("m", Payload.Empty))
   }
 
-  test("request message serialization") {
-    val input: Message = InputMessage.RequestMessage("my/method", CallId.NumberId(1), None)
+  test("request message serialization elides empty params") {
+    val input: Message = InputMessage.RequestMessage("my/method", CallId.NumberId(1), Payload.Empty)
     val expected = """{"jsonrpc":"2.0","method":"my/method","id":1}"""
     val result = writeToString(input.asJson)
 
@@ -68,7 +67,7 @@ object RawMessageSpec extends FunSuite {
     val input: Message = InputMessage.RequestMessage(
       "greet",
       CallId.NumberId(0),
-      Some(Payload(Json.obj("name" -> Json.fromString("Client"))))
+      Payload(Json.obj("name" -> Json.fromString("Client")))
     )
     val expected = """{"jsonrpc":"2.0","method":"greet","params":{"name":"Client"},"id":0}"""
     val result = writeToString(input.asJson)
@@ -76,8 +75,8 @@ object RawMessageSpec extends FunSuite {
     expect(result == expected, s"Expected: $expected, got: $result")
   }
 
-  test("notification message serialization") {
-    val input: Message = InputMessage.NotificationMessage("my/method", None)
+  test("notification message serialization elides empty params") {
+    val input: Message = InputMessage.NotificationMessage("my/method", Payload.Empty)
     val expected = """{"jsonrpc":"2.0","method":"my/method"}"""
     val result = writeToString(input.asJson)
 

@@ -40,19 +40,24 @@ private[jsonrpclib] case class RawMessage(
   }
 
   // JSON-RPC 2.0 §4: the `params` member MAY be omitted; treat omitted/null as `{}`.
-  private def normalizedParams: Option[Payload] =
-    Some(params.flatMap(_.stripNull).getOrElse(Payload(Json.obj())))
+  private def normalizedParams: Payload =
+    params.flatMap(_.stripNull).getOrElse(Payload.Empty)
 }
 
 private[jsonrpclib] object RawMessage {
 
   val `2.0` = "2.0"
 
+  // Per JSON-RPC 2.0 §4, omitted and empty-object params are semantically equivalent;
+  // we elide the field on the wire to match what spec-compliant clients expect.
+  private def encodeParams(params: Payload): Option[Payload] =
+    if (params == Payload.Empty) None else Some(params)
+
   def from(message: Message): RawMessage = message match {
     case InputMessage.NotificationMessage(method, params) =>
-      RawMessage(`2.0`, method = Some(method), params = params)
+      RawMessage(`2.0`, method = Some(method), params = encodeParams(params))
     case InputMessage.RequestMessage(method, callId, params) =>
-      RawMessage(`2.0`, method = Some(method), params = params, id = Some(callId))
+      RawMessage(`2.0`, method = Some(method), params = encodeParams(params), id = Some(callId))
     case OutputMessage.ErrorMessage(callId, errorPayload) =>
       RawMessage(`2.0`, error = Some(errorPayload), id = Some(callId))
     case OutputMessage.ResponseMessage(callId, data) =>
