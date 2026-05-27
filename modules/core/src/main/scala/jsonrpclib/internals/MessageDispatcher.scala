@@ -4,6 +4,7 @@ package internals
 import io.circe.Decoder
 import io.circe.Encoder
 import io.circe.HCursor
+import io.circe.Json
 import jsonrpclib.Endpoint.NotificationEndpoint
 import jsonrpclib.Endpoint.RequestResponseEndpoint
 import jsonrpclib.OutputMessage.ErrorMessage
@@ -74,13 +75,15 @@ private[jsonrpclib] abstract class MessageDispatcher[F[_]](implicit F: Monadic[F
 
   private def executeInputMessage(input: InputMessage, endpoint: Endpoint[F]): F[Unit] = {
     (input, endpoint) match {
-      case (InputMessage.NotificationMessage(_, Some(params)), ep: NotificationEndpoint[F, in]) =>
-        ep.inCodec(HCursor.fromJson(params.data)) match {
+      case (InputMessage.NotificationMessage(_, params), ep: NotificationEndpoint[F, in]) =>
+        val payload = normalizeParams(params)
+        ep.inCodec(HCursor.fromJson(payload.data)) match {
           case Right(value) => ep.run(input, value)
-          case Left(value)  => reportError(Some(params), ProtocolError.ParseError(value.getMessage), ep.method)
+          case Left(value)  => reportError(Some(payload), ProtocolError.ParseError(value.getMessage), ep.method)
         }
-      case (InputMessage.RequestMessage(_, callId, Some(params)), ep: RequestResponseEndpoint[F, in, err, out]) =>
-        ep.inCodec(HCursor.fromJson(params.data)) match {
+      case (InputMessage.RequestMessage(_, callId, params), ep: RequestResponseEndpoint[F, in, err, out]) =>
+        val payload = normalizeParams(params)
+        ep.inCodec(HCursor.fromJson(payload.data)) match {
           case Right(value) =>
             doFlatMap(doAttempt(ep.run(input, value))) {
               case Right(Right(data)) =>
@@ -97,14 +100,6 @@ private[jsonrpclib] abstract class MessageDispatcher[F[_]](implicit F: Monadic[F
           case Left(pError) =>
             sendProtocolError(callId, ProtocolError.ParseError(pError.getMessage))
         }
-      case (InputMessage.NotificationMessage(_, None), _: NotificationEndpoint[F, in]) =>
-        val message = "Missing payload"
-        val pError = ProtocolError.InvalidRequest(message)
-        sendProtocolError(pError)
-      case (InputMessage.RequestMessage(_, callId, None), _: RequestResponseEndpoint[F, in, err, out]) =>
-        val message = "Missing payload"
-        val pError = ProtocolError.InvalidRequest(message)
-        sendProtocolError(callId, pError)
       case (InputMessage.NotificationMessage(_, _), ep: RequestResponseEndpoint[F, in, err, out]) =>
         val message = s"This ${ep.method} endpoint cannot process notifications, request is missing callId"
         val pError = ProtocolError.InvalidRequest(message)
@@ -115,6 +110,10 @@ private[jsonrpclib] abstract class MessageDispatcher[F[_]](implicit F: Monadic[F
         sendProtocolError(callId, pError)
     }
   }
+
+  // JSON-RPC 2.0 §4: the `params` member MAY be omitted; treat omitted/null as `{}`.
+  private def normalizeParams(params: Option[Payload]): Payload =
+    params.flatMap(_.stripNull).getOrElse(Payload(Json.obj()))
 
   private def createPendingCall[Err, Out](
       errDecoder: ErrorDecoder[Err],
