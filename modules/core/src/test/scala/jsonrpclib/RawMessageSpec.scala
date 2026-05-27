@@ -33,6 +33,29 @@ object RawMessageSpec extends FunSuite {
     expect(invalidRawMessage.toMessage.isLeft, invalidRawMessage.toMessage.toString)
   }
 
+  test("request with omitted or null params decodes to empty object") {
+    // JSON-RPC 2.0 §4: the `params` member MAY be omitted.
+    val omitted = readFromString[Json]("""{"jsonrpc":"2.0","method":"m","id":1}""")
+      .as[RawMessage]
+      .flatMap(_.toMessage.left.map(e => new RuntimeException(e.getMessage)))
+      .fold(throw _, identity)
+
+    val nulled = readFromString[Json]("""{"jsonrpc":"2.0","method":"m","params":null,"id":2}""")
+      .as[RawMessage]
+      .flatMap(_.toMessage.left.map(e => new RuntimeException(e.getMessage)))
+      .fold(throw _, identity)
+
+    val notif = readFromString[Json]("""{"jsonrpc":"2.0","method":"m"}""")
+      .as[RawMessage]
+      .flatMap(_.toMessage.left.map(e => new RuntimeException(e.getMessage)))
+      .fold(throw _, identity)
+
+    val emptyObj = Some(Payload(Json.obj()))
+    expect.same(omitted, InputMessage.RequestMessage("m", NumberId(1), emptyObj)) &&
+    expect.same(nulled, InputMessage.RequestMessage("m", NumberId(2), emptyObj)) &&
+    expect.same(notif, InputMessage.NotificationMessage("m", emptyObj))
+  }
+
   test("request message serialization") {
     val input: Message = InputMessage.RequestMessage("my/method", CallId.NumberId(1), None)
     val expected = """{"jsonrpc":"2.0","method":"my/method","id":1}"""

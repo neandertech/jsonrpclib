@@ -17,9 +17,9 @@ private[jsonrpclib] case class RawMessage(
 
   def toMessage: Either[ProtocolError, Message] = (id, method) match {
     case (Some(callId), Some(method)) =>
-      Right(InputMessage.RequestMessage(method, callId, params))
+      Right(InputMessage.RequestMessage(method, callId, normalizedParams))
     case (None, Some(method)) =>
-      Right(InputMessage.NotificationMessage(method, params))
+      Right(InputMessage.NotificationMessage(method, normalizedParams))
     case (Some(callId), None) =>
       (error, result) match {
         case (Some(error), _) => Right(OutputMessage.ErrorMessage(callId, error))
@@ -38,6 +38,10 @@ private[jsonrpclib] case class RawMessage(
         )
       )
   }
+
+  // JSON-RPC 2.0 §4: the `params` member MAY be omitted; treat omitted/null as `{}`.
+  private def normalizedParams: Option[Payload] =
+    Some(params.flatMap(_.stripNull).getOrElse(Payload(Json.obj())))
 }
 
 private[jsonrpclib] object RawMessage {

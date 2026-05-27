@@ -2,6 +2,8 @@ package jsonrpclib.fs2
 
 import cats.effect.IO
 import cats.syntax.all._
+import com.github.plokhotnyuk.jsoniter_scala.circe.JsoniterScalaCodec._
+import com.github.plokhotnyuk.jsoniter_scala.core._
 import fs2.Stream
 import io.circe.generic.semiauto._
 import io.circe.Codec
@@ -114,16 +116,20 @@ object FS2ChannelSpec extends SimpleIOSuite {
     }
   }
 
-  // JSON-RPC 2.0 §4 allows `params` to be omitted; the dispatcher must accept it
-  // for endpoints whose input decodes from an empty object.
+  // JSON-RPC 2.0 §4 allows `params` to be omitted; wire-format parsing must accept
+  // such requests for endpoints whose input decodes from an empty object.
+  private def parseMessage(json: String): Message =
+    readFromString[Json](json).as[Message].fold(throw _, identity)
+
   testRes("Request with omitted params is accepted") {
     val endpoint: Endpoint[IO] =
       Endpoint[IO]("noargs").simple((_: NoArgs) => IO.pure(IntWrapper(42)))
 
+    val request = parseMessage("""{"jsonrpc":"2.0","method":"noargs","id":1}""")
+
     for {
       server <- FS2Channel.stream[IO]()
       _ <- server.withEndpointStream(endpoint)
-      request: Message = InputMessage.RequestMessage("noargs", CallId.NumberId(1), None)
       response <- server.output.take(1).concurrently(Stream.emit(request).through(server.input))
     } yield {
       response match {
@@ -138,10 +144,11 @@ object FS2ChannelSpec extends SimpleIOSuite {
     val endpoint: Endpoint[IO] =
       Endpoint[IO]("noargs").simple((_: NoArgs) => IO.pure(IntWrapper(7)))
 
+    val request = parseMessage("""{"jsonrpc":"2.0","method":"noargs","params":null,"id":2}""")
+
     for {
       server <- FS2Channel.stream[IO]()
       _ <- server.withEndpointStream(endpoint)
-      request: Message = InputMessage.RequestMessage("noargs", CallId.NumberId(2), Some(Payload(Json.Null)))
       response <- server.output.take(1).concurrently(Stream.emit(request).through(server.input))
     } yield {
       response match {
@@ -153,12 +160,13 @@ object FS2ChannelSpec extends SimpleIOSuite {
   }
 
   testRes("Notification with omitted params is accepted") {
+    val notification = parseMessage("""{"jsonrpc":"2.0","method":"notify"}""")
+
     for {
       received <- IO.deferred[NoArgs].toStream
       endpoint: Endpoint[IO] = Endpoint[IO]("notify").notification((args: NoArgs) => received.complete(args).void)
       server <- FS2Channel.stream[IO]()
       _ <- server.withEndpointStream(endpoint)
-      notification: Message = InputMessage.NotificationMessage("notify", None)
       _ <- Stream.emit(notification).through(server.input)
       result <- received.get.toStream
     } yield {
