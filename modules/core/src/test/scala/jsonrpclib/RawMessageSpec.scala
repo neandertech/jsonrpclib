@@ -111,4 +111,39 @@ object RawMessageSpec extends FunSuite {
     expect(result == expected, s"Expected: $expected, got: $result")
   }
 
+  test("input message codec decodes requests and notifications") {
+    def decodeInput(s: String) = readFromString[Json](s).as[InputMessage]
+
+    expect.same(
+      decodeInput("""{"jsonrpc":"2.0","method":"greet","id":1}"""),
+      Right(InputMessage.RequestMessage("greet", CallId.NumberId(1), None))
+    ) &&
+    expect.same(
+      decodeInput("""{"jsonrpc":"2.0","method":"ping"}"""),
+      Right(InputMessage.NotificationMessage("ping", None))
+    ) &&
+    expect(decodeInput("""{"jsonrpc":"2.0","id":1,"result":null}""").isLeft)
+  }
+
+  test("input message codec serializes via Message encoder") {
+    val input: InputMessage = InputMessage.RequestMessage("greet", CallId.NumberId(0), None)
+    val expected = """{"jsonrpc":"2.0","method":"greet","id":0}"""
+
+    expect(writeToString(input.asJson) == expected)
+  }
+
+  test("output message codec decodes responses and errors") {
+    def decodeOutput(s: String) = readFromString[Json](s).as[OutputMessage]
+
+    expect.same(
+      decodeOutput("""{"jsonrpc":"2.0","id":1,"result":null}"""),
+      Right(OutputMessage.ResponseMessage(CallId.NumberId(1), Payload.NullPayload))
+    ) &&
+    expect.same(
+      decodeOutput("""{"jsonrpc":"2.0","error":{"code":-32603,"message":"Internal error","data":null},"id":1}"""),
+      Right(OutputMessage.ErrorMessage(CallId.NumberId(1), ErrorPayload(-32603, "Internal error", None)))
+    ) &&
+    expect(decodeOutput("""{"jsonrpc":"2.0","method":"greet","id":1}""").isLeft)
+  }
+
 }
