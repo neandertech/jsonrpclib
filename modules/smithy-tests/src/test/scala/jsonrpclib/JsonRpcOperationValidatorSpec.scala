@@ -27,10 +27,12 @@ object JsonRpcOperationValidatorSpec extends FunSuite {
         |
         |@jsonRpcNotification("methodB")
         |operation OpB {
-        |  output: unit
+        |  output: Unit
         |}
         |""".stripMargin
     )
+      .unwrap()
+
     success
   }
 
