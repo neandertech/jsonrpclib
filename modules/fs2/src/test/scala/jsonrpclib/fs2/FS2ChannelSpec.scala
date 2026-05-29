@@ -2,9 +2,12 @@ package jsonrpclib.fs2
 
 import cats.effect.IO
 import cats.syntax.all._
+import com.github.plokhotnyuk.jsoniter_scala.circe.JsoniterScalaCodec._
+import com.github.plokhotnyuk.jsoniter_scala.core._
 import fs2.Stream
 import io.circe.generic.semiauto._
 import io.circe.Codec
+import io.circe.Json
 import jsonrpclib._
 import weaver._
 
@@ -15,6 +18,11 @@ object FS2ChannelSpec extends SimpleIOSuite {
   case class IntWrapper(int: Int)
   object IntWrapper {
     implicit val codec: Codec[IntWrapper] = deriveCodec
+  }
+
+  case class NoArgs()
+  object NoArgs {
+    implicit val codec: Codec[NoArgs] = deriveCodec
   }
 
   case class CancelRequest(callId: CallId)
@@ -105,6 +113,64 @@ object FS2ChannelSpec extends SimpleIOSuite {
       val (time, results) = timedResults
       expect.same(results, (2 to 11).toList.map(IntWrapper(_))) &&
       expect(time < 2.seconds)
+    }
+  }
+
+  // JSON-RPC 2.0 §4 allows `params` to be omitted; wire-format parsing must accept
+  // such requests for endpoints whose input decodes from an empty object.
+  private def parseMessage(json: String): Message =
+    readFromString[Json](json).as[Message].fold(throw _, identity)
+
+  testRes("Request with omitted params is accepted") {
+    val endpoint: Endpoint[IO] =
+      Endpoint[IO]("noargs").simple((_: NoArgs) => IO.pure(IntWrapper(42)))
+
+    val request = parseMessage("""{"jsonrpc":"2.0","method":"noargs","id":1}""")
+
+    for {
+      server <- FS2Channel.stream[IO]()
+      _ <- server.withEndpointStream(endpoint)
+      response <- server.output.take(1).concurrently(Stream.emit(request).through(server.input))
+    } yield {
+      response match {
+        case OutputMessage.ResponseMessage(CallId.NumberId(1), payload) =>
+          expect.same(payload.data.as[IntWrapper], Right(IntWrapper(42)))
+        case other => failure(s"Unexpected response: $other")
+      }
+    }
+  }
+
+  testRes("Request with null params is accepted") {
+    val endpoint: Endpoint[IO] =
+      Endpoint[IO]("noargs").simple((_: NoArgs) => IO.pure(IntWrapper(7)))
+
+    val request = parseMessage("""{"jsonrpc":"2.0","method":"noargs","params":null,"id":2}""")
+
+    for {
+      server <- FS2Channel.stream[IO]()
+      _ <- server.withEndpointStream(endpoint)
+      response <- server.output.take(1).concurrently(Stream.emit(request).through(server.input))
+    } yield {
+      response match {
+        case OutputMessage.ResponseMessage(CallId.NumberId(2), payload) =>
+          expect.same(payload.data.as[IntWrapper], Right(IntWrapper(7)))
+        case other => failure(s"Unexpected response: $other")
+      }
+    }
+  }
+
+  testRes("Notification with omitted params is accepted") {
+    val notification = parseMessage("""{"jsonrpc":"2.0","method":"notify"}""")
+
+    for {
+      received <- IO.deferred[NoArgs].toStream
+      endpoint: Endpoint[IO] = Endpoint[IO]("notify").notification((args: NoArgs) => received.complete(args).void)
+      server <- FS2Channel.stream[IO]()
+      _ <- server.withEndpointStream(endpoint)
+      _ <- Stream.emit(notification).through(server.input)
+      result <- received.get.toStream
+    } yield {
+      expect.same(result, NoArgs())
     }
   }
 
