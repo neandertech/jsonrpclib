@@ -116,17 +116,17 @@ object RawMessageSpec extends FunSuite {
 
     expect.same(
       decodeInput("""{"jsonrpc":"2.0","method":"greet","id":1}"""),
-      Right(InputMessage.RequestMessage("greet", CallId.NumberId(1), None))
+      Right(InputMessage.RequestMessage("greet", CallId.NumberId(1), Payload.Empty))
     ) &&
     expect.same(
       decodeInput("""{"jsonrpc":"2.0","method":"ping"}"""),
-      Right(InputMessage.NotificationMessage("ping", None))
+      Right(InputMessage.NotificationMessage("ping", Payload.Empty))
     ) &&
     expect(decodeInput("""{"jsonrpc":"2.0","id":1,"result":null}""").isLeft)
   }
 
   test("input message codec serializes via Message encoder") {
-    val input: InputMessage = InputMessage.RequestMessage("greet", CallId.NumberId(0), None)
+    val input: InputMessage = InputMessage.RequestMessage("greet", CallId.NumberId(0), Payload.Empty)
     val expected = """{"jsonrpc":"2.0","method":"greet","id":0}"""
 
     expect(writeToString(input.asJson) == expected)
