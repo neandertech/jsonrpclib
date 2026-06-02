@@ -30,7 +30,7 @@ object JsonRpcOperationValidatorSpec extends FunSuite {
         |  output: unit
         |}
         |""".stripMargin
-    )
+    ): Unit
     success
   }
 
