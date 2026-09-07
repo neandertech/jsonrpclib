@@ -174,6 +174,28 @@ object FS2ChannelSpec extends SimpleIOSuite {
     }
   }
 
+  testRes("Notification with undecodable params doesn't kill the channel") {
+    // `reportError` used to be `???`, so a notification whose params failed to decode
+    // took down the whole channel with a NotImplementedError.
+    val bad = parseMessage("""{"jsonrpc":"2.0","method":"notify","params":{"whatever":1}}""")
+
+    for {
+      received <- IO.deferred[NoArgs].toStream
+      endpoint: Endpoint[IO] = Endpoint[IO]("notify").notification((args: IntWrapper) =>
+        IO.raiseError(new AssertionError("should not decode: " + args))
+      )
+      okEndpoint: Endpoint[IO] = Endpoint[IO]("notify2").notification((args: NoArgs) => received.complete(args).void)
+      server <- FS2Channel.stream[IO]()
+      _ <- server.withEndpointsStream(List(endpoint, okEndpoint))
+      _ <- Stream.emit(bad).through(server.input)
+      // the channel must still be alive to serve this one
+      _ <- Stream.emit(parseMessage("""{"jsonrpc":"2.0","method":"notify2"}""")).through(server.input)
+      result <- received.get.toStream
+    } yield {
+      expect.same(result, NoArgs())
+    }
+  }
+
   testRes("cancelation propagates") {
     val cancelTemplate = CancelTemplate.make[CancelRequest]("$/cancel", _.callId, CancelRequest(_))
 

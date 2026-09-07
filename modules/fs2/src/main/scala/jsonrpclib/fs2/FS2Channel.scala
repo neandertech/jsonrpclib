@@ -190,7 +190,10 @@ object FS2Channel {
             state.update(_.addRunningCall(callId, fiber))
           }
       }
-    protected def reportError(params: Option[Payload], error: ProtocolError, method: String): F[Unit] = ???
+    protected def reportError(params: Option[Payload], error: ProtocolError, method: String): F[Unit] =
+      // Notifications have no call id to respond to, so the error goes out with a null id,
+      // matching how the dispatcher reports other notification-level protocol errors.
+      sendProtocolError(error)
     protected def getEndpoint(method: String): F[Option[Endpoint[F]]] = state.get.map(_.getEndpoint(method))
     protected def sendMessage(message: Message): F[Unit] = queue.offer(message)
 
